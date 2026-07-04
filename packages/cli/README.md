@@ -7,15 +7,22 @@ Command-line interface for Kimi Registry Adapter. It creates and maintains edita
 ## Requirements
 
 - Node.js `>=22.18 <25`
-- pnpm or `npx`
+- A package runner such as `pnpm dlx`, `npx`, `bunx`, or `yarn dlx`
+
+`pnpx @kastral/kra` can be used as a shorthand for `pnpm dlx @kastral/kra`, and `bunx @kastral/kra` is equivalent to `bun x @kastral/kra`. Deno is not currently supported; KRA is a Node.js CLI.
 
 ## Install / run
 
 Run the published CLI without installing it into a project:
 
 ```sh
-npx @kastral/kra --help
+pnpm dlx @kastral/kra --help
+npx @kastral/kra -- --help
+bunx @kastral/kra --help
+yarn dlx @kastral/kra --help
 ```
+
+`npx` can consume flags such as `--help` itself, so place CLI flags after `--` when using `npx`. `pnpx @kastral/kra` can be used as a shorthand for `pnpm dlx @kastral/kra`.
 
 For local development in this repository:
 
@@ -28,10 +35,13 @@ pnpm dev -- --help
 Interactive mode is the primary user experience for local setup:
 
 ```sh
+pnpm dlx @kastral/kra
 npx @kastral/kra
+bunx @kastral/kra
+yarn dlx @kastral/kra
 ```
 
-Use it when you want KRA to guide the workflow instead of remembering flags. It is especially useful for the first provider because it opens a minimal setup flow when no providers exist.
+Use whichever package runner you already have available. `pnpx @kastral/kra` can be used as a shorthand for `pnpm dlx @kastral/kra`, and `bunx @kastral/kra` is equivalent to `bun x @kastral/kra`. Use interactive mode when you want KRA to guide the workflow instead of remembering flags. It is especially useful for the first provider because it opens a minimal setup flow when no providers exist.
 
 After at least one provider exists, the interactive home menu supports:
 
@@ -43,7 +53,7 @@ After at least one provider exists, the interactive home menu supports:
 
 A typical interactive flow is:
 
-1. Start `npx @kastral/kra`.
+1. Start `pnpm dlx @kastral/kra`, `npx @kastral/kra`, `bunx @kastral/kra`, or `yarn dlx @kastral/kra`.
 2. Add a provider.
 3. Choose a model source and the models to include.
 4. Configure auth with an environment variable name.
@@ -120,9 +130,9 @@ npx @kastral/kra remove moonshot --keep-files
 
 Omit `--keep-files` to remove local registry files too.
 
-## One-off `npx` mode
+## One-off package-runner mode
 
-Every CLI example above can be run as a one-off `npx` command. This is useful when:
+Every CLI example above can be run as a one-off package-runner command. This is useful when:
 
 - trying KRA without installing it globally
 - running on a temporary machine
@@ -132,9 +142,13 @@ Every CLI example above can be run as a one-off `npx` command. This is useful wh
 Examples:
 
 ```sh
+pnpm dlx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
 npx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
-npx @kastral/kra update moonshot
-npx @kastral/kra serve --host 127.0.0.1 --port 2727
+bunx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
+yarn dlx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
+
+pnpm dlx @kastral/kra update moonshot
+pnpm dlx @kastral/kra serve --host 127.0.0.1 --port 2727
 ```
 
 State is still persisted under `~/.kimi-registry-adapter` unless `--state-dir <path>` is provided.

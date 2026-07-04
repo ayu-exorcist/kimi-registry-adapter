@@ -7,15 +7,22 @@ Kimi Registry Adapter 的命令行界面。它可以从 OpenAI-compatible、Anth
 ## 环境要求
 
 - Node.js `>=22.18 <25`
-- pnpm 或 `npx`
+- 一个 package runner，例如 `pnpm dlx`、`npx`、`bunx` 或 `yarn dlx`
+
+`pnpx @kastral/kra` 可作为 `pnpm dlx @kastral/kra` 的简写，`bunx @kastral/kra` 等价于 `bun x @kastral/kra`。当前不支持 Deno；KRA 是 Node.js CLI。
 
 ## 安装 / 运行
 
 无需安装到项目中，直接运行已发布的 CLI：
 
 ```sh
-npx @kastral/kra --help
+pnpm dlx @kastral/kra --help
+npx @kastral/kra -- --help
+bunx @kastral/kra --help
+yarn dlx @kastral/kra --help
 ```
+
+`npx` 可能会消费 `--help` 等参数；使用 `npx` 时，请把 CLI 参数放在 `--` 后面。`pnpx @kastral/kra` 可作为 `pnpm dlx @kastral/kra` 的简写。
 
 在本仓库中进行本地开发：
 
@@ -28,10 +35,13 @@ pnpm dev -- --help
 交互模式是本地设置的主要使用体验：
 
 ```sh
+pnpm dlx @kastral/kra
 npx @kastral/kra
+bunx @kastral/kra
+yarn dlx @kastral/kra
 ```
 
-当你希望 KRA 引导流程，而不是记忆命令参数时，请使用交互模式。第一次配置 provider 时尤其适合，因为在没有 provider 的情况下，它会打开最小化设置流程。
+使用你已有的 package runner 即可。`pnpx @kastral/kra` 可作为 `pnpm dlx @kastral/kra` 的简写，`bunx @kastral/kra` 等价于 `bun x @kastral/kra`。当你希望 KRA 引导流程，而不是记忆命令参数时，请使用交互模式。第一次配置 provider 时尤其适合，因为在没有 provider 的情况下，它会打开最小化设置流程。
 
 至少存在一个 provider 后，交互式主菜单支持：
 
@@ -43,7 +53,7 @@ npx @kastral/kra
 
 典型交互流程：
 
-1. 启动 `npx @kastral/kra`。
+1. 启动 `pnpm dlx @kastral/kra`、`npx @kastral/kra`、`bunx @kastral/kra` 或 `yarn dlx @kastral/kra`。
 2. 添加 provider。
 3. 选择模型来源和要包含的模型。
 4. 使用环境变量名配置认证。
@@ -120,9 +130,9 @@ npx @kastral/kra remove moonshot --keep-files
 
 省略 `--keep-files` 时，也会删除本地 registry 文件。
 
-## 一次性 `npx` 模式
+## 一次性 package runner 模式
 
-上面的所有 CLI 示例都可以作为一次性 `npx` 命令运行。适用场景包括：
+上面的所有 CLI 示例都可以作为一次性 package runner 命令运行。适用场景包括：
 
 - 不全局安装即可试用 KRA
 - 在临时机器上运行
@@ -132,9 +142,13 @@ npx @kastral/kra remove moonshot --keep-files
 示例：
 
 ```sh
+pnpm dlx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
 npx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
-npx @kastral/kra update moonshot
-npx @kastral/kra serve --host 127.0.0.1 --port 2727
+bunx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
+yarn dlx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
+
+pnpm dlx @kastral/kra update moonshot
+pnpm dlx @kastral/kra serve --host 127.0.0.1 --port 2727
 ```
 
 除非提供 `--state-dir <path>`，状态仍会持久化到 `~/.kimi-registry-adapter`。

@@ -20,10 +20,13 @@ KRA is designed for several workflows. The recommended first experience is **int
 Interactive mode is the easiest way to configure providers because it turns the setup flow into a menu-driven wizard:
 
 ```sh
+pnpm dlx @kastral/kra
 npx @kastral/kra
+bunx @kastral/kra
+yarn dlx @kastral/kra
 ```
 
-Use it when you want KRA to guide you through provider creation, auth setup, registry updates, URL printing, and starting the local server. With no providers configured, the wizard starts with a minimal setup flow. After a provider exists, the home menu can manage the full lifecycle.
+Use whichever package runner you already have available. `pnpx @kastral/kra` can be used as a shorthand for `pnpm dlx @kastral/kra`, and `bunx @kastral/kra` is equivalent to `bun x @kastral/kra`. Use interactive mode when you want KRA to guide you through provider creation, auth setup, registry updates, URL printing, and starting the local server. With no providers configured, the wizard starts with a minimal setup flow. After a provider exists, the home menu can manage the full lifecycle.
 
 ### CLI mode: repeatable commands
 
@@ -39,14 +42,32 @@ npx @kastral/kra add moonshot \
 
 Other command-mode operations include `list`, `auth`, `update`, `remove`, and `serve`.
 
-### One-off `npx` execution
+### One-off package-runner execution
 
-The published CLI can be run without installing it into a project:
+The published CLI can be run without installing it into a project. Use whichever package runner you already have available:
 
 ```sh
+pnpm dlx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
 npx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
-npx @kastral/kra serve --host 127.0.0.1 --port 2727
+bunx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
+yarn dlx @kastral/kra add moonshot --base-url https://api.moonshot.cn/v1 --api-key-env MOONSHOT_API_KEY
 ```
+
+Use the same runner for long-running server mode, for example:
+
+```sh
+pnpm dlx @kastral/kra serve --host 127.0.0.1 --port 2727
+npx @kastral/kra serve --host 127.0.0.1 --port 2727
+bunx @kastral/kra serve --host 127.0.0.1 --port 2727
+```
+
+For help with `npx`, pass CLI flags after `--` so npm does not consume them:
+
+```sh
+npx @kastral/kra -- --help
+```
+
+`pnpx @kastral/kra` can be used as a shorthand for `pnpm dlx @kastral/kra`, and `bunx @kastral/kra` is equivalent to `bun x @kastral/kra`. Deno is not currently supported; KRA is a Node.js CLI.
 
 This is useful for local setup, CI jobs, and temporary machines. KRA still persists state under `~/.kimi-registry-adapter` unless `--state-dir` is provided.
 
@@ -64,17 +85,20 @@ Use a terminal, startup script, or OS service to keep `kra serve` running. KRA i
 
 ## Packages
 
-| Package                                          | Purpose                                                                                      |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| [`@kastral/kra`](./packages/cli/README.md)       | Published CLI for interactive mode, command mode, one-off `npx` execution, and `serve`.      |
-| [`@kastral/kra-core`](./packages/core/README.md) | Private shared library for config, auth, update, transform, validation, and state mutations. |
+| Package                                          | Purpose                                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| [`@kastral/kra`](./packages/cli/README.md)       | Published CLI for interactive mode, command mode, one-off package-runner execution, and `serve`. |
+| [`@kastral/kra-core`](./packages/core/README.md) | Private shared library for config, auth, update, transform, validation, and state mutations.     |
 
 ## Quick start
 
 The shortest path is interactive mode:
 
 ```sh
+pnpm dlx @kastral/kra
 npx @kastral/kra
+bunx @kastral/kra
+yarn dlx @kastral/kra
 ```
 
 After setup, start the local registry server before starting Kimi:

@@ -1,0 +1,60 @@
+{
+  "name": "@kastral/kra",
+  "version": "0.1.0",
+  "description": "Create and serve editable Kimi provider registries from OpenAI-compatible and Anthropic model sources.",
+  "keywords": [
+    "ai",
+    "anthropic",
+    "cli",
+    "kimi",
+    "llm",
+    "model-registry",
+    "models",
+    "moonshot",
+    "openai",
+    "openai-compatible",
+    "registry"
+  ],
+  "homepage": "https://github.com/ayu-exorcist/kimi-registry-adapter/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/ayu-exorcist/kimi-registry-adapter/issues"
+  },
+  "license": "MIT",
+  "author": "ayu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayu-exorcist/kimi-registry-adapter.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "kra": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.8",
+    "@rabbx/watcher": "^1.2.0",
+    "@xstate/fsm": "^2.1.0",
+    "citty": "^0.2.2",
+    "hono": "^4.12.27",
+    "picocolors": "^1.1.1"
+  },
+  "engines": {
+    "node": ">=22.18 <25"
+  }
+}

@@ -1,0 +1,4 @@
+[tools]
+"aqua:colbymchenry/codegraph" = "latest"
+node = "22"
+pnpm = '11.9.0'

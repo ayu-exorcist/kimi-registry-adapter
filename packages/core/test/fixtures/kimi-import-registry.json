@@ -1,0 +1,23 @@
+{
+  "provider": {
+    "id": "provider",
+    "name": "Provider",
+    "api": "https://gateway.example.com/v1",
+    "type": "openai_responses",
+    "models": {
+      "gpt-4.1": {
+        "id": "gpt-4.1",
+        "name": "gpt-4.1",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        },
+        "tool_call": true,
+        "modalities": {
+          "input": ["text"],
+          "output": ["text"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "id": "example-vision-model",
+      "context_length": 262144,
+      "max_output_tokens": 16384,
+      "architecture": {
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"]
+      }
+    }
+  ]
+}

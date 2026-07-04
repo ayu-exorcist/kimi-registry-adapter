@@ -1,0 +1,21 @@
+{
+  "name": "@kastral/kra-core",
+  "private": true,
+  "description": "Private shared core for Kimi registry adapter config, auth, updates, transforms, validation, and state mutations.",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

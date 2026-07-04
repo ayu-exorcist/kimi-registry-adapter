@@ -1,0 +1,75 @@
+{
+  "name": "kimi-registry-adapter",
+  "private": true,
+  "description": "Create and serve editable Kimi provider registries from OpenAI-compatible and Anthropic model sources.",
+  "homepage": "https://github.com/ayu-exorcist/kimi-registry-adapter#readme",
+  "bugs": {
+    "url": "https://github.com/ayu-exorcist/kimi-registry-adapter/issues"
+  },
+  "license": "MIT",
+  "author": "ayu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayu-exorcist/kimi-registry-adapter.git"
+  },
+  "type": "module",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm -r build",
+    "dev": "tsx packages/cli/src/index.ts",
+    "prepare": "simple-git-hooks",
+    "fmt": "oxfmt --check",
+    "fmt:fix": "oxfmt --write",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:binary": "tsx scripts/binary-smoke.ts",
+    "coverage": "vitest run --coverage",
+    "check": "pnpm fmt && pnpm lint && pnpm typecheck && pnpm config-schema:check && pnpm test",
+    "changeset": "changeset",
+    "config-schema:generate": "tsx scripts/generate-config-schema.ts",
+    "config-schema:check": "tsx scripts/generate-config-schema.ts --check",
+    "version-packages": "changeset version && pnpm config-schema:generate && pnpm install --lockfile-only",
+    "release:dry": "pnpm check && pnpm build && pnpm config-schema:check && changeset status --verbose",
+    "release": "pnpm check && pnpm build && pnpm config-schema:check && changeset publish",
+    "release:manual": "pnpm release"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.0",
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@types/node": "^22.12.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "lint-staged": "^17.0.8",
+    "oxfmt": "^0.57.0",
+    "oxlint": "^1.72.0",
+    "simple-git-hooks": "^2.13.1",
+    "tsdown": "^0.22.3",
+    "tsx": "^4.22.5",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged && pnpm typecheck",
+    "commit-msg": "pnpm exec commitlint --edit \"$1\"",
+    "pre-push": "pnpm test"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "oxlint --fix",
+      "oxfmt --write"
+    ],
+    "*.{json,jsonc,md,yml,yaml,toml}": "oxfmt --write"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "engines": {
+    "node": ">=22.18 <25"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

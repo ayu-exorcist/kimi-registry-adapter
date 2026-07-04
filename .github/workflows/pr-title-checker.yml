@@ -1,0 +1,20 @@
+name: PR Title Checker
+
+on:
+  pull_request:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  check:
+    name: pr-title-checker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: thehanimo/pr-title-checker@v1.4.3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          configuration_path: '.github/pr-title-checker-config.json'

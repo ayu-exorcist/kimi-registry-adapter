@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build and test output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local state and temp files
+.kimi-registry-adapter/
+tmp/
+*.tmp
+
+# Local publish / pack artifacts
+*.tgz
+.npm/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local tooling
+.claude/
+.pi/
+.kimi-code/
+.codegraph/
+
+# OS files
+.DS_Store

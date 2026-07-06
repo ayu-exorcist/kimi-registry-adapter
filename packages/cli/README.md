@@ -6,7 +6,7 @@ Command-line interface for Kimi Registry Adapter. It creates and maintains edita
 
 ## Requirements
 
-- Node.js `>=22.18 <25`
+- Node.js `>=22.18`
 - A package runner such as `pnpm dlx`, `npx`, `bunx`, or `yarn dlx`
 
 `pnpx @kastral/kra` can be used as a shorthand for `pnpm dlx @kastral/kra`, and `bunx @kastral/kra` is equivalent to `bun x @kastral/kra`. Deno is not currently supported; KRA is a Node.js CLI.

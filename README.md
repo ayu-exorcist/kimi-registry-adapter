@@ -8,7 +8,7 @@ The project is a pnpm workspace with CLI and core packages.
 
 ## Requirements
 
-- Node.js `>=22.18 <25`
+- Node.js `>=22.18`
 - pnpm `11.9.0`
 
 ## Usage modes

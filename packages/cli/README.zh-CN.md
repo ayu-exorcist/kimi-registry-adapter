@@ -6,7 +6,7 @@ Kimi Registry Adapter 的命令行界面。它可以从 OpenAI-compatible、Anth
 
 ## 环境要求
 
-- Node.js `>=22.18 <25`
+- Node.js `>=22.18`
 - 一个 package runner，例如 `pnpm dlx`、`npx`、`bunx` 或 `yarn dlx`
 
 `pnpx @kastral/kra` 可作为 `pnpm dlx @kastral/kra` 的简写，`bunx @kastral/kra` 等价于 `bun x @kastral/kra`。当前不支持 Deno；KRA 是 Node.js CLI。

@@ -97,8 +97,8 @@ CLI/server 边界见 [CLI And Server Reference](../../docs/cli-and-server.md)。
 
 ```sh
 pnpm --filter @kastral/kra-core build
-pnpm --filter @kastral/kra-core typecheck
-pnpm test packages/core
+pnpm typecheck
+pnpm exec vitest run packages/core
 ```
 
 在仓库根目录运行 `pnpm check` 会执行 workspace 的 lint、typecheck 和测试。

@@ -9,7 +9,7 @@ The project is a pnpm workspace with CLI and core packages.
 ## Requirements
 
 - Node.js `>=22.18`
-- pnpm `11.9.0`
+- pnpm (installed through `mise`; see `mise.toml`)
 
 ## Usage modes
 
@@ -208,7 +208,7 @@ pnpm test
 pnpm coverage
 ```
 
-CI also runs `pnpm build` after checks and coverage.
+CI also runs `pnpm build` and `pnpm test:binary` after `pnpm check`.
 
 Check formatting:
 

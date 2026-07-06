@@ -40,7 +40,7 @@ After the release PR is merged, the same workflow publishes to npm with:
 pnpm release
 ```
 
-The release command runs formatting, linting, typechecking, config schema checks, tests, coverage, build, a final config schema check, and then `changeset publish`.
+The release command runs `pnpm check` for formatting, linting, typechecking, config schema checks, and tests; then it builds packages, runs a final config schema check, and calls `changeset publish`.
 
 ## NPM Trusted Publishing
 

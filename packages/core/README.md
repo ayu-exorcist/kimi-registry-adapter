@@ -97,8 +97,8 @@ For test coverage, generated-schema checks, and verification commands, see [Test
 
 ```sh
 pnpm --filter @kastral/kra-core build
-pnpm --filter @kastral/kra-core typecheck
-pnpm test packages/core
+pnpm typecheck
+pnpm exec vitest run packages/core
 ```
 
 From the repository root, `pnpm check` runs linting, typechecking, and tests for the workspace.

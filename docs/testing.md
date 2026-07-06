@@ -2,14 +2,14 @@
 
 ## Top-Level Positioning
 
-Testing in KRA protects three boundaries: the core state/update engine, the CLI/user workflow layer, and the release artifacts. The repository uses Vitest for package tests and combines formatting, linting, typechecking, generated-schema checks, tests, coverage, and build checks before release.
+Testing in KRA protects three boundaries: the core state/update engine, the CLI/user workflow layer, and the release artifacts. The repository uses Vitest for package tests and combines formatting, linting, typechecking, generated-schema checks, tests, build checks, and a built-binary smoke test across local and CI verification.
 
 Objective facts:
 
 - Vitest includes `packages/**/*.test.ts`.
 - The test resolver aliases `@kastral/kra-core` to `packages/core/src/index.ts`, so CLI tests exercise current core source rather than stale build output.
-- CI runs `pnpm check`, `pnpm coverage`, and `pnpm build` on pull requests and pushes to `main`.
-- `pnpm release` runs checks, coverage, build, config schema checks, and `changeset publish`.
+- CI runs `pnpm check`, `pnpm build`, and `pnpm test:binary` on pull requests and pushes to `main`.
+- `pnpm release` runs `pnpm check`, `pnpm build`, a final `pnpm config-schema:check`, and `changeset publish`.
 
 Implicit assumptions:
 
@@ -21,15 +21,15 @@ Implicit assumptions:
 
 Use the smallest command that covers the change, then run the broader gate before claiming a release-ready state.
 
-| Change area                         | Primary verification                                  | Broader gate                                      |
-| ----------------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
-| Core config/auth/state/update logic | `pnpm exec vitest run packages/core`                  | `pnpm check && pnpm coverage`                     |
-| CLI command parsing or JSON output  | `pnpm exec vitest run packages/cli`                   | `pnpm check && pnpm build`                        |
-| Interactive prompts and flows       | Relevant `packages/cli/test/interactive*.test.ts`     | `pnpm exec vitest run packages/cli`               |
-| HTTP server and scheduled updates   | `packages/cli/test/server-runtime*.test.ts`           | `pnpm exec vitest run packages/cli && pnpm build` |
-| Config schema changes               | `pnpm config-schema:generate` or `--check` equivalent | `pnpm check`                                      |
-| Release or versioning changes       | `pnpm release:dry`                                    | CI release workflow on `main`                     |
-| Documentation-only changes          | `pnpm fmt`                                            | Run targeted tests when docs describe behavior    |
+| Change area                         | Primary verification                                  | Broader gate                                                |
+| ----------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| Core config/auth/state/update logic | `pnpm exec vitest run packages/core`                  | `pnpm check`; add `pnpm coverage` for riskier logic changes |
+| CLI command parsing or JSON output  | `pnpm exec vitest run packages/cli`                   | `pnpm check && pnpm build`                                  |
+| Interactive prompts and flows       | Relevant `packages/cli/test/interactive*.test.ts`     | `pnpm exec vitest run packages/cli`                         |
+| HTTP server and scheduled updates   | `packages/cli/test/server-runtime*.test.ts`           | `pnpm exec vitest run packages/cli && pnpm build`           |
+| Config schema changes               | `pnpm config-schema:generate` or `--check` equivalent | `pnpm check`                                                |
+| Release or versioning changes       | `pnpm release:dry`                                    | CI release workflow on `main`                               |
+| Documentation-only changes          | `pnpm fmt`                                            | Run targeted tests when docs describe behavior              |
 
 ## Bottom-Layer Details
 
@@ -43,10 +43,11 @@ pnpm config-schema:check
 pnpm test
 pnpm coverage
 pnpm build
+pnpm test:binary
 pnpm check
 ```
 
-`pnpm check` runs formatting, linting, typechecking, config schema generation check, and tests. Coverage and build are separate in CI and release scripts, so run them explicitly when validating release readiness.
+`pnpm check` runs formatting, linting, typechecking, config schema generation check, and tests. Coverage, build, and the binary smoke test are separate commands; CI runs build and the binary smoke test after `pnpm check`, while coverage is an explicit local verification command.
 
 ### Test Layout
 
@@ -75,12 +76,12 @@ CLI tests live under `packages/cli/test` and cover:
 
 `vitest.config.ts` uses the V8 coverage provider and writes reports to `coverage/`. Global thresholds are:
 
-- statements: `75`
-- branches: `65`
-- functions: `80`
-- lines: `75`
+- statements: `83`
+- branches: `72`
+- functions: `86`
+- lines: `84`
 
-Selected interactive prompt files have lower per-file thresholds because they are TTY-heavy boundaries. Do not lower thresholds to make a change pass; add focused tests or justify a separate architecture change.
+Selected interactive prompt files have lower per-file thresholds because they are TTY-heavy boundaries: `interactive-actions.ts`, `interactive-add.ts`, and `search-multiselect.ts` each declare explicit per-file thresholds in `vitest.config.ts`. Do not lower thresholds to make a change pass; add focused tests or justify a separate architecture change.
 
 ### Generated Schema Checks
 
@@ -97,6 +98,16 @@ pnpm config-schema:check
 ```
 
 `pnpm version-packages` runs schema generation after Changesets updates package versions.
+
+### Built Binary Smoke Test
+
+After `pnpm build`, run:
+
+```sh
+pnpm test:binary
+```
+
+The smoke script executes `packages/cli/dist/index.js --help` with Node.js and verifies that the built CLI help contains `kra`, `add`, and `serve`.
 
 ### Regression-Test Expectations
 
@@ -136,6 +147,7 @@ This document was checked against:
 - `package.json` for root scripts.
 - `vitest.config.ts` for test include patterns, aliases, coverage reporter, and thresholds.
 - `.github/workflows/ci.yml` and `.github/workflows/release.yml` for CI/release gates.
+- `scripts/binary-smoke.ts` for built CLI smoke-test behavior.
 - `scripts/generate-config-schema.ts` for generated artifact verification commands.
 - `packages/core/test` and `packages/cli/test` for the current test layout.
 

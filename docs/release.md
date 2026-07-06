@@ -29,7 +29,7 @@ Release flow has two paths:
 
 ### Package Versions
 
-Only `packages/cli/package.json` carries the publishable package version. The current `@kastral/kra` version is `0.1.0`.
+Only `packages/cli/package.json` carries the publishable package version. The current `@kastral/kra` version is `0.1.1`.
 
 The root `package.json` and `packages/core/package.json` are private workspace manifests and are not published independently.
 
@@ -91,13 +91,13 @@ pnpm config-schema:generate
 pnpm config-schema:check
 ```
 
-`pnpm version-packages` runs `changeset version`, regenerates `schemas/config.schema.json`, and updates the lockfile. `pnpm release` runs checks, coverage, build, config schema check, and publishes with `changeset publish`. `pnpm release:manual` is the local one-command publish path for an already committed release version: it runs `pnpm release`.
+`pnpm version-packages` runs `changeset version`, regenerates `schemas/config.schema.json`, and updates the lockfile. `pnpm release` runs `pnpm check`, builds packages, runs a final config schema check, and publishes with `changeset publish`. `pnpm release:manual` is the local one-command publish path for an already committed release version: it runs `pnpm release`.
 
 The GitHub release workflow:
 
 1. Checks out the repository with full history.
 2. Installs Node.js and pnpm through mise.
-3. Configures the npm registry and upgrades npm for Trusted Publishing support.
+3. Configures the npm registry for `https://registry.npmjs.org` before installing dependencies.
 4. Installs dependencies with `pnpm install --frozen-lockfile`.
 5. Runs `changesets/action@v1` with `version: pnpm version-packages` and `publish: pnpm release`.
 
@@ -127,7 +127,7 @@ Use this to preview the release status without publishing:
 pnpm release:dry
 ```
 
-It runs checks, coverage, builds packages, verifies the generated config schema, and prints `changeset status --verbose`.
+It runs checks, builds packages, verifies the generated config schema, and prints `changeset status --verbose`.
 
 ## Code Consistency Check
 

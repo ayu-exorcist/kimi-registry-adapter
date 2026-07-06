@@ -72,7 +72,7 @@ export const parsePatternList = (values: string[] | undefined): string[] | undef
   return patterns.length > 0 ? patterns : undefined;
 };
 
-export const collectOptionValues = (rawArgs: string[], optionName: string): string[] => {
+const collectOptionValues = (rawArgs: string[], optionName: string): string[] => {
   const values: string[] = [];
   for (let index = 0; index < rawArgs.length; index += 1) {
     const item = rawArgs[index];

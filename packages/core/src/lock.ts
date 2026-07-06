@@ -182,12 +182,6 @@ export const acquireStateDirLock = async (
   options: StateDirLockOptions = {},
 ): Promise<() => Promise<void>> => acquireLockPath(stateDirLockPath(stateDir), options);
 
-export const acquireProviderLock = async (
-  stateDir: string,
-  providerId: string,
-  options: StateDirLockOptions = {},
-): Promise<() => Promise<void>> => acquireLockPath(providerLockPath(stateDir, providerId), options);
-
 const withLockPath = async <T>(
   lockPath: string,
   action: () => Promise<T>,

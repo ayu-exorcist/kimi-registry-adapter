@@ -1,4 +1,9 @@
-import type { DiscoveredModel, ProviderConfig, ProviderType } from '@kastral/kra-core';
+import type {
+  DiscoveredModel,
+  ProviderConfig,
+  ProviderDefinitionFields,
+  ProviderType,
+} from '@kastral/kra-core';
 
 import type { UpdateMode } from './args';
 import {
@@ -7,18 +12,9 @@ import {
 } from './interactive-add-state';
 import type { AddProviderState } from './interactive-add-wizard';
 
-export type ProviderSetupDraft = {
+export type ProviderSetupDraft = ProviderDefinitionFields & {
   stateDir: string;
   providerId: string;
-  baseUrl: string;
-  type: ProviderType;
-  modelSource?: ProviderConfig['modelSource'];
-  modelsMetadataPath?: string;
-  apiKeyEnv?: string;
-  npm?: string;
-  name?: string;
-  include?: string[];
-  exclude?: string[];
   apiKey?: string;
   updateMode?: UpdateMode;
   cachedModels?: DiscoveredModel[];
@@ -37,24 +33,9 @@ export type ProviderDefinitionOptions = {
   exclude?: string[];
 };
 
-export const providerDefinitionOptionsFromDraft = (
+const providerDefinitionFieldsFromDraft = (
   draft: ProviderSetupDraft,
-): ProviderDefinitionOptions => ({
-  stateDir: draft.stateDir,
-  baseUrl: draft.baseUrl,
-  type: draft.type,
-  ...(draft.modelSource ? { modelSourceConfig: draft.modelSource } : {}),
-  ...(draft.name ? { name: draft.name } : {}),
-  ...(draft.modelsMetadataPath ? { modelsMetadataPath: draft.modelsMetadataPath } : {}),
-  ...(draft.apiKeyEnv ? { apiKeyEnv: draft.apiKeyEnv } : {}),
-  ...(draft.npm ? { npm: draft.npm } : {}),
-  ...(draft.include ? { include: draft.include } : {}),
-  ...(draft.exclude ? { exclude: draft.exclude } : {}),
-});
-
-export const providerSetupOperationInputFromDraft = (draft: ProviderSetupDraft) => ({
-  stateDir: draft.stateDir,
-  providerId: draft.providerId,
+): ProviderDefinitionFields => ({
   baseUrl: draft.baseUrl,
   type: draft.type,
   ...(draft.modelSource ? { modelSource: draft.modelSource } : {}),
@@ -64,7 +45,25 @@ export const providerSetupOperationInputFromDraft = (draft: ProviderSetupDraft) 
   ...(draft.npm ? { npm: draft.npm } : {}),
   ...(draft.include ? { include: draft.include } : {}),
   ...(draft.exclude ? { exclude: draft.exclude } : {}),
+});
+
+export const providerDefinitionOptionsFromDraft = (
+  draft: ProviderSetupDraft,
+): ProviderDefinitionOptions => {
+  const { modelSource, ...fields } = providerDefinitionFieldsFromDraft(draft);
+  return {
+    stateDir: draft.stateDir,
+    ...fields,
+    ...(modelSource ? { modelSourceConfig: modelSource } : {}),
+  };
+};
+
+export const providerSetupOperationInputFromDraft = (draft: ProviderSetupDraft) => ({
+  stateDir: draft.stateDir,
+  providerId: draft.providerId,
+  ...providerDefinitionFieldsFromDraft(draft),
   ...(draft.apiKey ? { apiKey: draft.apiKey } : {}),
+  ...(draft.cachedModels ? { models: draft.cachedModels } : {}),
   ...(draft.updateMode ? { updateMode: draft.updateMode } : {}),
 });
 

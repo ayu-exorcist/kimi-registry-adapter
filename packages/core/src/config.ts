@@ -17,7 +17,7 @@ const nonEmptyString = nonEmptyStringSchema;
 const positiveInteger = positiveIntegerSchema;
 const nonEmptyModalities = z.array(modalitySchema).check(z.minLength(1));
 
-export const providerModelSourceSchema = z.discriminatedUnion('kind', [
+const providerModelSourceSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.enum(providerModelEndpointSourceKinds),
     modelsUrl: z.optional(nonEmptyString),
@@ -33,7 +33,7 @@ export const providerModelSourceSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
-export const modelOverrideSchema = z.strictObject({
+const modelOverrideSchema = z.strictObject({
   id: z.optional(nonEmptyString),
   name: z.optional(nonEmptyString),
   family: z.optional(nonEmptyString),
@@ -54,7 +54,7 @@ export const modelOverrideSchema = z.strictObject({
   ),
 });
 
-export const providerConfigSchema = z.strictObject({
+const providerConfigSchema = z.strictObject({
   name: nonEmptyString,
   baseUrl: nonEmptyString,
   type: zDefault(providerTypeSchema, DEFAULT_PROVIDER_TYPE),
@@ -94,7 +94,7 @@ export const configSchema = z.strictObject({
   providers: zDefault(z.record(nonEmptyString, providerConfigSchema), {}),
 });
 
-export const CONFIG_SCHEMA_PATH =
+const CONFIG_SCHEMA_PATH =
   'https://raw.githubusercontent.com/ayu-exorcist/kimi-registry-adapter/refs/heads/main/schemas/config.schema.json';
 
 export type ProviderModelSource = z.infer<typeof providerModelSourceSchema>;

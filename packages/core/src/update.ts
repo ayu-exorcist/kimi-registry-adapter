@@ -90,6 +90,19 @@ const throwIfAborted = (signal: AbortSignal | undefined): void => {
   signal?.throwIfAborted();
 };
 
+const loadUpdateProviderState = (stateDir: string, providerId: string) => {
+  const safeProviderId = normalizeProviderId(providerId);
+  const store = createEditableRegistryStore(stateDir, safeProviderId);
+  const config = readConfig(store.paths.configPath);
+  const provider = config.providers[safeProviderId];
+
+  if (!provider) {
+    throw new Error(`Unknown provider: ${safeProviderId}`);
+  }
+
+  return { safeProviderId, store, config, provider };
+};
+
 export const prepareProviderUpdate = async ({
   stateDir,
   providerId,
@@ -102,16 +115,9 @@ export const prepareProviderUpdate = async ({
   UpdateProviderOptions,
   'stateDir' | 'providerId' | 'models' | 'apiKey' | 'now' | 'signal' | 'runtime'
 >): Promise<PreparedProviderUpdate> => {
-  const safeProviderId = normalizeProviderId(providerId);
   const updateRuntime = createUpdateRuntime(now, runtime);
   throwIfAborted(signal);
-  const store = createEditableRegistryStore(stateDir, safeProviderId);
-  const config = readConfig(store.paths.configPath);
-  const provider = config.providers[safeProviderId];
-
-  if (!provider) {
-    throw new Error(`Unknown provider: ${safeProviderId}`);
-  }
+  const { safeProviderId, store, provider } = loadUpdateProviderState(stateDir, providerId);
 
   const authSnapshot = authProviderSnapshot(store.paths.authPath, safeProviderId);
   const { sourceModels, modelsMetadata } = await resolveProviderModelSource({
@@ -144,15 +150,8 @@ export const applyPreparedProviderUpdate = ({
 }: Pick<UpdateProviderOptions, 'stateDir' | 'providerId' | 'dryRun' | 'force' | 'updateMode'> & {
   prepared: PreparedProviderUpdate;
 }): UpdateProviderResult => {
-  const safeProviderId = normalizeProviderId(providerId);
   throwIfAborted(prepared.signal);
-  const store = createEditableRegistryStore(stateDir, safeProviderId);
-  const config = readConfig(store.paths.configPath);
-  const provider = config.providers[safeProviderId];
-
-  if (!provider) {
-    throw new Error(`Unknown provider: ${safeProviderId}`);
-  }
+  const { safeProviderId, store, config, provider } = loadUpdateProviderState(stateDir, providerId);
 
   if (createDeterministicJsonSnapshot(provider) !== prepared.providerSnapshot) {
     throw new Error(`Provider changed during update: ${safeProviderId}. Retry the update.`);

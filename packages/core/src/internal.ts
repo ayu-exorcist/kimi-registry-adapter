@@ -12,6 +12,7 @@ export * from './model-capability-definition';
 export * from './model-capability';
 export * from './operations';
 export * from './update';
+export * from './provider-definition';
 export * from './provider-id';
 export * from './provider-descriptor';
 export * from './provider-model-source';

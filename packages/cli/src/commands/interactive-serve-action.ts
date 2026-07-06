@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { posix } from 'node:path';
 
 import { isInteractiveHome } from '../prompts/navigation';
 import { printServeStartupSummary } from './render';
@@ -22,13 +22,14 @@ export const runInteractiveServe = async (options: {
     servePort = availablePort;
   }
 
+  const stateDir = posix.normalize(options.stateDir);
   const stopRenderingServeSummary = printServeStartupSummary(
-    resolve(options.stateDir),
+    stateDir,
     options.host,
     `${servePort}`,
   );
   const server = await startRegistryServerOnDemand({
-    stateDir: resolve(options.stateDir),
+    stateDir,
     host: options.host,
     port: servePort,
   });

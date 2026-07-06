@@ -4,20 +4,26 @@ import { stripVTControlCharacters } from 'node:util';
 import pc from 'picocolors';
 
 import {
+  createPromptFinisher,
   createPromptReadline,
   deletePreviousWord,
+  finishPromptHome,
   handleCommonPromptKey,
+  hiddenItemsLine,
   interactiveHomeSymbol,
+  promptLinePrefix,
   promptStateIcon,
   promptSymbols,
-  renderPromptDetail,
+  renderPromptDetails,
+  renderPromptHint,
+  visibleWindow,
   type PromptDetail,
 } from './prompt-core';
 import { FrameRenderer, terminalContentWidth, wrapPlainText } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
 import { createPromptCleanup, promptInput, subscribeTerminalResize } from './terminal-session';
 
-export interface SearchItem<T> {
+interface SearchItem<T> {
   value: T;
   label: string;
   hint?: string;
@@ -39,9 +45,7 @@ const S_CHECKBOX_ACTIVE = promptSymbols.checkboxActive;
 const S_CHECKBOX_INACTIVE = promptSymbols.checkboxInactive;
 const S_BAR = promptSymbols.bar;
 
-export const cancelSymbol = Symbol('cancel');
-
-const promptLinePrefix = (): string => `${S_BAR}  `;
+const cancelSymbol = Symbol('cancel');
 
 const wrapPromptText = (value: string): string[] =>
   wrapPlainText(value, terminalContentWidth(promptLinePrefix()));
@@ -175,31 +179,22 @@ export const searchMultiselect = async <T>(
     const render = (state: 'active' | 'submit' | 'cancel' = 'active'): void => {
       syncSelectAll();
       clearRender();
-      const lines: string[] = [];
       const filtered = getFiltered();
       const icon = promptStateIcon(state);
-      lines.push(`${icon}  ${pc.bold(message)}`);
-      for (const detail of details) {
-        for (const line of wrapPromptText(detail.text)) {
-          lines.push(`${promptLinePrefix()}${renderPromptDetail({ ...detail, text: line })}`);
-        }
-      }
+      const lines: string[] = [`${icon}  ${pc.bold(message)}`, ...renderPromptDetails(details)];
 
       if (state === 'active') {
         lines.push(...renderSearchLines());
         const hint = formatShortcutHint(
           '↑↓ move · space select · ctrl+a all · ctrl+n none · enter/→ confirm · esc/← back · alt+h main menu · ctrl+c exit',
         );
-        for (const line of wrapPromptText(hint)) {
-          lines.push(`${promptLinePrefix()}${pc.dim(line)}`);
-        }
-        lines.push(`${S_BAR}`);
+        lines.push(...renderPromptHint(hint), `${S_BAR}`);
 
-        const visibleStart = Math.max(
-          0,
-          Math.min(cursor - Math.floor(maxVisible / 2), filtered.length - maxVisible),
+        const { start: visibleStart, end: visibleEnd } = visibleWindow(
+          cursor,
+          filtered.length,
+          maxVisible,
         );
-        const visibleEnd = Math.min(filtered.length, visibleStart + maxVisible);
         const visibleItems = filtered.slice(visibleStart, visibleEnd);
 
         if (filtered.length === 0) {
@@ -232,13 +227,9 @@ export const searchMultiselect = async <T>(
             }
           }
 
-          const hiddenBefore = visibleStart;
-          const hiddenAfter = filtered.length - visibleEnd;
-          if (hiddenBefore > 0 || hiddenAfter > 0) {
-            const parts: string[] = [];
-            if (hiddenBefore > 0) parts.push(`↑ ${hiddenBefore} more`);
-            if (hiddenAfter > 0) parts.push(`↓ ${hiddenAfter} more`);
-            lines.push(`${S_BAR}  ${pc.dim(parts.join('  '))}`);
+          const hiddenLine = hiddenItemsLine(visibleStart, filtered.length - visibleEnd);
+          if (hiddenLine) {
+            lines.push(hiddenLine);
           }
         }
 
@@ -301,32 +292,30 @@ export const searchMultiselect = async <T>(
         return;
       }
       error = undefined;
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('submit');
-      }
-      cleanup();
-      resolve([...selected].filter((value) => value !== selectAllValue));
+      finish(
+        [...selected].filter((value) => value !== selectAllValue),
+        'submit',
+      );
     };
 
-    const cancel = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('cancel');
-      }
-      cleanup();
-      resolve(cancelSymbol);
-    };
+    const finish = createPromptFinisher<T[]>({
+      clearOnExit,
+      clearRender,
+      render,
+      cleanup,
+      resolve,
+    });
 
-    const goHome = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      }
-      cleanup();
-      resolve(interactiveHomeSymbol);
-    };
+    const cancel = (): void => finish(cancelSymbol, 'cancel');
+
+    const goHome = (): void =>
+      finishPromptHome({
+        clearOnExit,
+        clearRender,
+        cleanup,
+        resolve,
+        value: interactiveHomeSymbol,
+      });
 
     const selectAll = (): void => {
       error = undefined;

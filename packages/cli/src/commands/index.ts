@@ -32,7 +32,7 @@ const DEFAULT_STATE_DIR = resolve(homedir(), '.kimi-registry-adapter');
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 2727;
 
-export const formatInteractiveError = (error: unknown): string => {
+const formatInteractiveError = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message.split('\n')[0] ?? error.message;
   }

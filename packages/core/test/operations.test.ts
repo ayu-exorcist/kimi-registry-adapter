@@ -569,6 +569,30 @@ describe('core operations', () => {
     });
   });
 
+  it('sets up a provider with stored auth and caller-supplied models', async () => {
+    const stateDir = createStateDir();
+    const fetchProviderModels = vi.fn().mockRejectedValue(new Error('should not fetch models'));
+    const readModelsMetadata = vi.fn().mockResolvedValue(undefined);
+
+    const setup = await setupProviderOperation({
+      stateDir,
+      providerId: 'provider-a',
+      baseUrl: 'https://api.example.com/v1',
+      type: 'openai_responses',
+      apiKey: 'secret-key',
+      storeApiKey: true,
+      models: [{ id: 'cached-model' }],
+      runtime: { fetchProviderModels, readModelsMetadata },
+    });
+
+    expect(fetchProviderModels).not.toHaveBeenCalled();
+    expect(readAuthConfig(join(stateDir, 'auth.json')).providers['provider-a']).toEqual({
+      apiKey: 'secret-key',
+    });
+    expect(setup.editablePath).toBeDefined();
+    expect(readFileSync(setup.editablePath as string, 'utf8')).toContain('cached-model');
+  });
+
   it('replaces provider auth when switching between stored key and env reference', async () => {
     const stateDir = createStateDir();
     await saveProvider({

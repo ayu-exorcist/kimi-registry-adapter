@@ -419,10 +419,9 @@ export const runInteractiveUpdateProvider = async (options: {
       );
 
       if (action === undefined) {
+        selectedProviderAction = undefined;
         break;
       }
-
-      selectedProviderAction = action;
 
       const actionHandlers: Record<
         Exclude<ProviderManageAction, 'refresh'>,
@@ -446,10 +445,12 @@ export const runInteractiveUpdateProvider = async (options: {
 
       if (action === 'refresh') {
         await refreshProviderRegistry({ stateDir: options.stateDir, providerId, runtime });
+        selectedProviderAction = undefined;
         continue;
       }
 
-      await actionHandlers[action]();
+      const result = await actionHandlers[action]();
+      selectedProviderAction = result === 'back' ? action : undefined;
       continue;
     }
   }

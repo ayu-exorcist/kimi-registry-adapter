@@ -1,4 +1,4 @@
-export const modelCapabilityFieldNames = [
+const modelCapabilityFieldNames = [
   'limit',
   'tool_call',
   'reasoning',

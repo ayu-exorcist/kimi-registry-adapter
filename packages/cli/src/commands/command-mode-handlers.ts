@@ -12,7 +12,7 @@ import {
 import { parseUpdateIntervalMs } from '../duration';
 import { parseModelSource, parseUpdateMode, requireCliString, withPatternOptions } from './args';
 import type { CommandModeDefaults } from './command-mode-args';
-import { saveProviderDefinition, type AddProviderOptions } from './provider-setup';
+import { saveProviderDefinition } from './provider-setup';
 import {
   providerDefinitionOptionsFromDraft,
   providerSetupOperationInputFromDraft,
@@ -47,7 +47,6 @@ type RawProviderSetupCliArgs = {
   stateDir: string;
 };
 
-export type AddProviderCliArgs = AddProviderOptions & { providerId: string };
 export type SetupProviderCliArgs = RawProviderSetupCliArgs & {
   apiKey: OptionalCliValue<string>;
   host: string;
@@ -76,15 +75,22 @@ export type ServeCliArgs = Partial<{
   updateTimeoutMs: OptionalCliValue<string>;
 }>;
 
-const providerOptionSummary = (options: {
-  modelSource?: ProviderConfig['modelSource'];
-  modelsMetadataPath?: string;
-  apiKeyEnv?: string;
-  npm?: string;
+type NormalizedSetupProviderCliArgs = Omit<SetupProviderCliArgs, 'include' | 'exclude'> & {
   include?: string[];
   exclude?: string[];
-}): Record<string, string | string[] | ProviderConfig['modelSource']> => ({
-  ...(options.modelSource ? { modelSource: options.modelSource } : {}),
+};
+
+type ProviderOptionFields = Pick<
+  ProviderSetupDraft,
+  'modelsMetadataPath' | 'apiKeyEnv' | 'npm' | 'include' | 'exclude' | 'name'
+>;
+
+type ProviderOptionInput = {
+  [Key in keyof ProviderOptionFields]?: ProviderOptionFields[Key] | undefined;
+};
+
+const pickProviderOptionFields = (options: ProviderOptionInput): ProviderOptionFields => ({
+  ...(options.name ? { name: options.name } : {}),
   ...(options.modelsMetadataPath ? { modelsMetadataPath: options.modelsMetadataPath } : {}),
   ...(options.apiKeyEnv ? { apiKeyEnv: options.apiKeyEnv } : {}),
   ...(options.npm ? { npm: options.npm } : {}),
@@ -92,23 +98,21 @@ const providerOptionSummary = (options: {
   ...(options.exclude ? { exclude: options.exclude } : {}),
 });
 
-const addProviderOptionSummary = (
-  options: Pick<
-    AddProviderOptions,
-    'modelsMetadataPath' | 'apiKeyEnv' | 'npm' | 'include' | 'exclude'
-  >,
-  modelSource: ProviderConfig['modelSource'] | undefined,
-): Record<string, string | string[] | ProviderConfig['modelSource']> =>
-  providerOptionSummary({
-    ...(modelSource ? { modelSource } : {}),
-    ...(options.modelsMetadataPath ? { modelsMetadataPath: options.modelsMetadataPath } : {}),
-    ...(options.apiKeyEnv ? { apiKeyEnv: options.apiKeyEnv } : {}),
-    ...(options.npm ? { npm: options.npm } : {}),
-    ...(options.include ? { include: options.include } : {}),
-    ...(options.exclude ? { exclude: options.exclude } : {}),
-  });
+const providerOptionSummary = (
+  options: ProviderOptionInput & { modelSource?: ProviderConfig['modelSource'] },
+): Record<string, string | string[] | ProviderConfig['modelSource']> => {
+  const { name: _name, ...fields } = pickProviderOptionFields(options);
+  return {
+    ...(options.modelSource ? { modelSource: options.modelSource } : {}),
+    ...fields,
+  };
+};
 
-export const parsePositiveIntegerOption = (
+const providerOptionFieldsFromCli = (
+  options: NormalizedSetupProviderCliArgs,
+): ProviderOptionFields => pickProviderOptionFields(options);
+
+const parsePositiveIntegerOption = (
   value: string | undefined,
   name: string,
 ): number | undefined => {
@@ -131,28 +135,18 @@ export const runAddCommand = async (
   const updateMode = parseUpdateMode(options.updateMode);
   const modelSource = parseModelSource(options.modelSource, options);
   const providerType = parseProviderType(options.type);
-  const optionSummary = addProviderOptionSummary(
-    {
-      ...(options.modelsMetadataPath ? { modelsMetadataPath: options.modelsMetadataPath } : {}),
-      ...(options.apiKeyEnv ? { apiKeyEnv: options.apiKeyEnv } : {}),
-      ...(options.npm ? { npm: options.npm } : {}),
-      ...(options.include ? { include: options.include } : {}),
-      ...(options.exclude ? { exclude: options.exclude } : {}),
-    },
-    modelSource,
-  );
+  const providerOptionFields = providerOptionFieldsFromCli(options);
+  const optionSummary = providerOptionSummary({
+    ...(modelSource ? { modelSource } : {}),
+    ...providerOptionFields,
+  });
   const draft: ProviderSetupDraft = {
     stateDir: options.stateDir,
     providerId: options.providerId,
     baseUrl: options.baseUrl,
     type: providerType,
     ...(modelSource ? { modelSource } : {}),
-    ...(options.name ? { name: options.name } : {}),
-    ...(options.modelsMetadataPath ? { modelsMetadataPath: options.modelsMetadataPath } : {}),
-    ...(options.apiKeyEnv ? { apiKeyEnv: options.apiKeyEnv } : {}),
-    ...(options.npm ? { npm: options.npm } : {}),
-    ...(options.include ? { include: options.include } : {}),
-    ...(options.exclude ? { exclude: options.exclude } : {}),
+    ...providerOptionFields,
     ...(options.apiKey ? { apiKey: options.apiKey } : {}),
     ...(updateMode ? { updateMode } : {}),
   };
@@ -224,7 +218,7 @@ export const resolveServeOptions = (args: ServeCliArgs, defaults: CommandModeDef
   return { stateDir, host, requestedPort };
 };
 
-export const createUpdateRunner = (
+const createUpdateRunner = (
   stateDir: string,
   options: {
     concurrency?: number;

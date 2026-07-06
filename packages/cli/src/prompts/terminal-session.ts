@@ -25,8 +25,6 @@ let promptRuntime: PromptRuntime = {
   exit: (code = 0) => process.exit(code),
 };
 
-export const getPromptRuntime = (): PromptRuntime => promptRuntime;
-
 export const setPromptRuntime = (runtime: Partial<PromptRuntime>): (() => void) => {
   const previous = promptRuntime;
   promptRuntime = { ...promptRuntime, ...runtime };

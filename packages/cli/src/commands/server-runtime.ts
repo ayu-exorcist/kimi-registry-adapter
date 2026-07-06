@@ -19,8 +19,8 @@ export type RegistryServer = {
   once(event: 'error', listener: (error: Error) => void): unknown;
 };
 
-export const DEFAULT_SERVE_PROVIDER_UPDATE_TIMEOUT_MS = 30_000;
-export const DEFAULT_SERVE_UPDATE_CONCURRENCY = 1;
+const DEFAULT_SERVE_PROVIDER_UPDATE_TIMEOUT_MS = 30_000;
+const DEFAULT_SERVE_UPDATE_CONCURRENCY = 1;
 
 export const assertValidTcpPort = (port: number, name = 'port'): number => {
   if (!Number.isInteger(port) || port <= 0 || port > 65_535) {

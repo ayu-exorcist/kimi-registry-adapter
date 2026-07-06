@@ -19,25 +19,11 @@ describe('interactive add provider action', () => {
     state.include = ['model-a'];
     rememberFetchedModels(state, { modelIds: ['model-a'], models: [{ id: 'model-a' }] });
 
-    const saveProviderDefinition = vi.fn().mockResolvedValue({
-      configPath: '/state/config.json',
-      stateDir: '/state',
-    });
-    const configureProviderAuth = vi.fn().mockResolvedValue({
+    const setupProviderOperation = vi.fn().mockResolvedValue({
       providerId: 'provider-a',
-      authPath: '/state/auth.json',
-      stored: 'apiKey',
-    });
-    const updateProviderOperation = vi.fn().mockResolvedValue({
+      configPath: '/state/config.json',
       editablePath: '/state/registries/provider-a/api.json',
       modelCount: 1,
-      updateStateSummary: {
-        updatedAt: '2026-01-01T00:00:00.000Z',
-        lastUpdateStatus: 'ok',
-        warnings: 0,
-        errors: 0,
-        conflicts: 0,
-      },
       metadataMatchSummary: { exact: 0, normalized: 0, unmatched: 1 },
       commit: 'abc123',
     });
@@ -51,31 +37,23 @@ describe('interactive add provider action', () => {
       stateDir: '/state',
       state,
       runtime: {
-        saveProviderDefinition,
-        configureProviderAuth,
-        updateProviderOperation,
+        setupProviderOperation,
         withLoadingIndicator,
       },
     });
 
-    expect(saveProviderDefinition).toHaveBeenCalledWith('provider-a', {
+    expect(loadingMessages).toEqual(['Updating registry...']);
+    expect(setupProviderOperation).toHaveBeenCalledWith({
       stateDir: '/state',
+      providerId: 'provider-a',
       baseUrl: 'https://api.example.com/v1',
       type: 'openai_responses',
-      modelSourceConfig: { kind: 'openai_models' },
+      modelSource: { kind: 'openai_models' },
       include: ['model-a'],
-    });
-    expect(configureProviderAuth).toHaveBeenCalledWith({
-      stateDir: '/state',
-      providerId: 'provider-a',
       apiKey: 'secret-key',
-    });
-    expect(loadingMessages).toEqual(['Updating registry...']);
-    expect(updateProviderOperation).toHaveBeenCalledWith({
-      stateDir: '/state',
-      providerId: 'provider-a',
       models: [{ id: 'model-a' }],
       updateMode: 'merge',
+      storeApiKey: true,
     });
     expect(result).toEqual({
       configPath: '/state/config.json',

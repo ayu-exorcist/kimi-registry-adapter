@@ -17,7 +17,7 @@ export type DiscoveredModel = {
 
 export type ModelsPayload = { data?: unknown[] } | unknown[];
 
-export const toDiscoveredModel = (value: unknown): DiscoveredModel | undefined => {
+const toDiscoveredModel = (value: unknown): DiscoveredModel | undefined => {
   if (!isUnknownRecord(value)) {
     return undefined;
   }

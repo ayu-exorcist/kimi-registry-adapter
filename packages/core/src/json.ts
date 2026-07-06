@@ -1,6 +1,3 @@
-export type JsonPrimitive = boolean | number | string | null;
-export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-
 const compareKeys = (left: string, right: string): number => {
   if (left < right) {
     return -1;

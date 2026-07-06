@@ -45,7 +45,7 @@ export const showNote = (message: string | (() => string), title: string): void 
   showResultScreen(title, formatResultMessage(resolvedMessage));
 };
 
-export const showPersistentNote = (
+const showPersistentNote = (
   message: string | (() => string),
   title: string,
   options: { hint?: string } = {},

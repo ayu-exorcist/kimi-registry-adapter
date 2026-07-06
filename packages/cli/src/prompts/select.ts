@@ -4,32 +4,28 @@ import { stripVTControlCharacters } from 'node:util';
 import pc from 'picocolors';
 
 import {
+  createPromptFinisher,
+  createPromptLifecycle,
   createPromptReadline,
+  finishPromptHome,
   handleCommonPromptKey,
+  hiddenItemsLine,
   interactiveHomeSymbol,
   promptStateIcon,
   promptSymbols,
-  renderPromptDetail,
+  renderPromptDetails,
+  visibleWindow,
   type PromptDetail,
-  type PromptDetailTone,
 } from './prompt-core';
-import {
-  clearTerminalScreen,
-  FrameRenderer,
-  renderAppHeader,
-  terminalContentWidth,
-  wrapPlainText,
-} from './screen';
+import { FrameRenderer, terminalContentWidth } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { createPromptCleanup, promptInput, subscribeTerminalResize } from './terminal-session';
+import { promptInput } from './terminal-session';
 
-export interface SelectItem<T> {
+interface SelectItem<T> {
   value: T;
   label: string;
   hint?: string;
 }
-
-export type { PromptDetail, PromptDetailTone };
 
 export interface SelectPromptOptions<T> {
   message: string;
@@ -45,7 +41,7 @@ const S_RADIO_ACTIVE = promptSymbols.radioActive;
 const S_RADIO_INACTIVE = promptSymbols.radioInactive;
 const S_BAR = promptSymbols.bar;
 
-export const selectCancelSymbol = Symbol('select-cancel');
+const selectCancelSymbol = Symbol('select-cancel');
 
 const wrapRenderedLine = (line: string, width: number): string[] => {
   const plain = stripVTControlCharacters(line);
@@ -90,32 +86,10 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
     let cursor = findInitialCursor(items, initialValue);
     const frame = new FrameRenderer();
 
-    const redrawScreen = (): void => {
-      frame.reset();
-      clearTerminalScreen();
-      renderAppHeader();
-      render();
-    };
-
-    const resizeHandler = (): void => {
-      redrawScreen();
-    };
-
-    const clearRender = (): void => {
-      frame.clear();
-    };
-
     const render = (state: 'active' | 'submit' | 'cancel' = 'active'): void => {
       clearRender();
-      const lines: string[] = [];
       const icon = promptStateIcon(state);
-      lines.push(`${icon}  ${pc.bold(message)}`);
-      for (const detail of details) {
-        const prefix = `${S_BAR}  `;
-        for (const line of wrapPlainText(detail.text, terminalContentWidth(prefix))) {
-          lines.push(`${prefix}${renderPromptDetail({ ...detail, text: line })}`);
-        }
-      }
+      const lines: string[] = [`${icon}  ${pc.bold(message)}`, ...renderPromptDetails(details)];
 
       const pushWrappedLine = (line: string): void => {
         const wrapped = wrapRenderedLine(line, terminalContentWidth());
@@ -123,11 +97,11 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
       };
 
       if (state === 'active') {
-        const visibleStart = Math.max(
-          0,
-          Math.min(cursor - Math.floor(maxVisible / 2), items.length - maxVisible),
+        const { start: visibleStart, end: visibleEnd } = visibleWindow(
+          cursor,
+          items.length,
+          maxVisible,
         );
-        const visibleEnd = Math.min(items.length, visibleStart + maxVisible);
         const visibleItems = items.slice(visibleStart, visibleEnd);
 
         pushWrappedLine(
@@ -147,13 +121,9 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
           pushWrappedLine(`${S_BAR} ${prefix} ${radio} ${label}${hint}`);
         }
 
-        const hiddenBefore = visibleStart;
-        const hiddenAfter = items.length - visibleEnd;
-        if (hiddenBefore > 0 || hiddenAfter > 0) {
-          const parts: string[] = [];
-          if (hiddenBefore > 0) parts.push(`↑ ${hiddenBefore} more`);
-          if (hiddenAfter > 0) parts.push(`↓ ${hiddenAfter} more`);
-          lines.push(`${S_BAR}  ${pc.dim(parts.join('  '))}`);
+        const hiddenLine = hiddenItemsLine(visibleStart, items.length - visibleEnd);
+        if (hiddenLine) {
+          lines.push(hiddenLine);
         }
         lines.push(`${pc.dim('╰')}`);
       } else if (state === 'submit') {
@@ -165,41 +135,33 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
       frame.render(lines);
     };
 
-    const resizeSubscription = subscribeTerminalResize(resizeHandler);
-
-    const cleanup = createPromptCleanup({
+    const { clearRender, redrawScreen, cleanup } = createPromptLifecycle({
       readlineInterface: rl,
+      frame,
+      render,
       keypressHandler: () => keypressHandler,
-      resizeSubscription,
     });
 
-    const submit = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('submit');
-      }
-      cleanup();
-      resolve(items[cursor]?.value ?? selectCancelSymbol);
-    };
+    const finish = createPromptFinisher<T>({
+      clearOnExit,
+      clearRender,
+      render,
+      cleanup,
+      resolve,
+    });
 
-    const cancel = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('cancel');
-      }
-      cleanup();
-      resolve(selectCancelSymbol);
-    };
+    const submit = (): void => finish(items[cursor]?.value ?? selectCancelSymbol, 'submit');
 
-    const goHome = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      }
-      cleanup();
-      resolve(interactiveHomeSymbol);
-    };
+    const cancel = (): void => finish(selectCancelSymbol, 'cancel');
+
+    const goHome = (): void =>
+      finishPromptHome({
+        clearOnExit,
+        clearRender,
+        cleanup,
+        resolve,
+        value: interactiveHomeSymbol,
+      });
 
     const keypressHandler = (_char: string, key: readline.Key): void => {
       if (!key) return;

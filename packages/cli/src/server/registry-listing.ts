@@ -21,7 +21,7 @@ export type RegistryListing = {
   updatedAt: Date;
 };
 
-export type InvalidRegistryListing = {
+type InvalidRegistryListing = {
   providerId: string;
   registryPath: string;
   error: string;
@@ -32,7 +32,7 @@ export type RegistryInspection = {
   invalid: InvalidRegistryListing[];
 };
 
-export const loadRegistry = (registryPath: string) => {
+const loadRegistry = (registryPath: string) => {
   return validateEditableRegistry(JSON.parse(readFileSync(registryPath, 'utf8')));
 };
 

@@ -32,7 +32,6 @@ export type StatePaths = {
 
 export {
   mergeEditableRegistry,
-  type MergeConflict,
   type MergeEditableRegistryResult,
   type ThreeWayMergeInput,
 } from './registry-merge';
@@ -176,13 +175,6 @@ const writeAtomicJson = (filePath: string, value: unknown): void => {
 
 export const writeModelsSnapshot = (filePath: string, models: DiscoveredModel[]): void => {
   writeAtomicJson(filePath, { data: models });
-};
-
-export const writeProviderState = (filePath: string, state: ProviderState): ProviderState => {
-  finalizeRegistryWriteTransaction(filePath);
-  validateGeneratedRegistry(state.lastGeneratedRegistry);
-  writeAtomicJson(filePath, state);
-  return state;
 };
 
 export const loadProviderState = (filePath: string): ProviderState | undefined => {

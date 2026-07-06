@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { posix } from 'node:path';
 
 import { formatRegistryListing, listRegistryUrls, showInteractiveNote } from './render';
 
@@ -7,7 +7,7 @@ export const runInteractiveListProviders = async (options: {
   host: string;
   port: string;
 }): Promise<void> => {
-  const stateDir = resolve(options.stateDir);
+  const stateDir = posix.normalize(options.stateDir);
   const registries = listRegistryUrls(stateDir, options.host, options.port);
   const title = `Providers: ${stateDir}`;
 

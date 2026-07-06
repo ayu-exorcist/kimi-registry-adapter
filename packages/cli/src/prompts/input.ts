@@ -4,23 +4,19 @@ import pc from 'picocolors';
 
 import {
   createPromptReadline,
+  createPromptSession,
   deletePreviousWord,
   handleCommonPromptKey,
-  interactiveHomeSymbol,
+  promptLinePrefix,
   promptStateIcon,
   promptSymbols,
-  renderPromptDetail,
+  renderPromptDetails,
+  renderPromptHint,
   type PromptDetail,
 } from './prompt-core';
-import {
-  clearTerminalScreen,
-  FrameRenderer,
-  renderAppHeader,
-  terminalContentWidth,
-  wrapPlainText,
-} from './screen';
+import { FrameRenderer, terminalContentWidth, wrapPlainText } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { createPromptCleanup, promptInput, subscribeTerminalResize } from './terminal-session';
+import { promptInput } from './terminal-session';
 
 export interface InputPromptOptions {
   message: string;
@@ -34,11 +30,9 @@ export interface InputPromptOptions {
 
 const S_BAR = promptSymbols.bar;
 
-export const inputCancelSymbol = Symbol('input-cancel');
+const inputCancelSymbol = Symbol('input-cancel');
 
-const inputLinePrefix = (): string => `${S_BAR}  `;
-
-const inputValueWidth = (): number => Math.max(1, terminalContentWidth(inputLinePrefix()) - 1);
+const inputValueWidth = (): number => Math.max(1, terminalContentWidth(promptLinePrefix()) - 1);
 
 export const inputPrompt = async (options: InputPromptOptions): Promise<string | symbol> => {
   const {
@@ -58,21 +52,6 @@ export const inputPrompt = async (options: InputPromptOptions): Promise<string |
     let cursor = initialValue.length;
     let error: string | undefined;
     const frame = new FrameRenderer();
-
-    const redrawScreen = (): void => {
-      frame.reset();
-      clearTerminalScreen();
-      renderAppHeader();
-      render();
-    };
-
-    const resizeHandler = (): void => {
-      redrawScreen();
-    };
-
-    const clearRender = (): void => {
-      frame.clear();
-    };
 
     const wrapInputValue = (displayValue: string): string[] =>
       wrapPlainText(displayValue, inputValueWidth());
@@ -109,33 +88,28 @@ export const inputPrompt = async (options: InputPromptOptions): Promise<string |
       const hint = formatShortcutHint(
         'enter confirm · esc back · ←→ move · ctrl+a/e home/end · ctrl+u/k/w edit · alt+h main menu · ctrl+c exit',
       );
-      const detailLines = details.flatMap((detail) =>
-        wrapPlainText(detail.text, terminalContentWidth(inputLinePrefix())).map(
-          (line) => `${inputLinePrefix()}${renderPromptDetail({ ...detail, text: line })}`,
-        ),
-      );
-      const hintLines = wrapPlainText(hint, terminalContentWidth(inputLinePrefix())).map(
-        (line) => `${inputLinePrefix()}${pc.dim(line)}`,
-      );
+      const detailLines = renderPromptDetails(details);
+      const hintLines = renderPromptHint(hint);
       const valueLines = renderedValueLines(state === 'active');
       const lines = [
         `${icon}  ${pc.bold(message)}`,
         ...detailLines,
         ...hintLines,
         `${S_BAR}`,
-        ...valueLines.map((line) => `${inputLinePrefix()}${line}`),
+        ...valueLines.map((line) => `${promptLinePrefix()}${line}`),
         ...(error ? [`${S_BAR}  ${pc.red(error)}`] : []),
         pc.dim('╰'),
       ];
       frame.render(lines);
     };
 
-    const resizeSubscription = subscribeTerminalResize(resizeHandler);
-
-    const cleanup = createPromptCleanup({
+    const { redrawScreen, cleanup, finish, goHome } = createPromptSession<string>({
       readlineInterface: rl,
+      frame,
+      render,
       keypressHandler: () => keypressHandler,
-      resizeSubscription,
+      clearOnExit,
+      resolve,
     });
 
     const submit = (): void => {
@@ -144,32 +118,10 @@ export const inputPrompt = async (options: InputPromptOptions): Promise<string |
         render();
         return;
       }
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('submit');
-      }
-      cleanup();
-      resolve(value);
+      finish(value, 'submit');
     };
 
-    const cancel = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('cancel');
-      }
-      cleanup();
-      resolve(inputCancelSymbol);
-    };
-
-    const goHome = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      }
-      cleanup();
-      resolve(interactiveHomeSymbol);
-    };
+    const cancel = (): void => finish(inputCancelSymbol, 'cancel');
 
     const keypressHandler = (char: string, key: readline.Key): void => {
       if (!key) return;

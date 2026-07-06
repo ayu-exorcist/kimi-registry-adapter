@@ -86,22 +86,6 @@ export default defineConfig({
   },
   overrides: [
     {
-      files: ['**/examples/**/*.ts', '**/examples/**/*.tsx'],
-      rules: {
-        'eslint/no-console': 'off',
-      },
-    },
-    {
-      files: ['packages/kosong/src/providers/**/*.ts'],
-      rules: {
-        'typescript/no-unsafe-argument': 'off',
-        'typescript/no-unsafe-assignment': 'off',
-        'typescript/no-unsafe-call': 'off',
-        'typescript/no-unsafe-member-access': 'off',
-        'typescript/no-unsafe-return': 'off',
-      },
-    },
-    {
       files: [
         '**/*.test.ts',
         '**/*.test.tsx',

@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { readAuthConfig, resolveProviderApiKey } from './auth';
 import type { KraConfig, ProviderConfig } from './config';
 import {
-  createBusinessFetchError,
+  assertOkResponse,
   createParseFetchError,
   KraFetchError,
   fetchResponse,
@@ -30,7 +30,6 @@ import {
 import { normalizeProviderId } from './provider-id';
 
 export {
-  DEFAULT_MODELS_METADATA_URL,
   clearModelsMetadataCache,
   readModelsMetadata,
   readModelsPayload,
@@ -57,13 +56,14 @@ const throwIfAborted = (signal: AbortSignal | undefined): void => {
 export const resolveModelsUrl = (baseUrl: string, modelsUrl?: string): string =>
   deriveDefaultProviderModelsUrl('openai', baseUrl, modelsUrl);
 
-export const fetchOpenAiModelsPayload = async (
+const fetchEndpointModelsPayload = async (
+  providerType: 'openai' | 'anthropic',
   baseUrl: string,
   modelsUrl?: string,
   apiKey?: string,
   signal?: AbortSignal,
 ): Promise<DiscoveredModel[]> => {
-  const descriptor = getProviderDescriptor('openai');
+  const descriptor = getProviderDescriptor(providerType);
   throwIfAborted(signal);
   const response = await fetchResponse(descriptor.defaultModelsUrl(baseUrl, modelsUrl), {
     headers: descriptor.discovery.headers(apiKey),
@@ -75,6 +75,15 @@ export const fetchOpenAiModelsPayload = async (
 
   const payload = await readJsonResponse<ModelsPayload>(response, descriptor.discovery.operation);
   return parseDiscoveredModels(Array.isArray(payload) ? payload : (payload.data ?? []));
+};
+
+export const fetchOpenAiModelsPayload = async (
+  baseUrl: string,
+  modelsUrl?: string,
+  apiKey?: string,
+  signal?: AbortSignal,
+): Promise<DiscoveredModel[]> => {
+  return fetchEndpointModelsPayload('openai', baseUrl, modelsUrl, apiKey, signal);
 };
 
 export const fetchAnthropicModelsPayload = async (
@@ -83,27 +92,7 @@ export const fetchAnthropicModelsPayload = async (
   apiKey?: string,
   signal?: AbortSignal,
 ): Promise<DiscoveredModel[]> => {
-  const descriptor = getProviderDescriptor('anthropic');
-  throwIfAborted(signal);
-  const response = await fetchResponse(descriptor.defaultModelsUrl(baseUrl, modelsUrl), {
-    headers: descriptor.discovery.headers(apiKey),
-    operation: descriptor.discovery.operation,
-    ...(signal ? { signal } : {}),
-  });
-
-  assertOkResponse(response, 'Failed to fetch models');
-
-  const payload = await readJsonResponse<ModelsPayload>(response, descriptor.discovery.operation);
-  return parseDiscoveredModels(Array.isArray(payload) ? payload : (payload.data ?? []));
-};
-
-const assertOkResponse = (response: Response, message: string): void => {
-  if (!response.ok) {
-    throw createBusinessFetchError(`${message}: ${response.status}`, {
-      url: response.url,
-      status: response.status,
-    });
-  }
+  return fetchEndpointModelsPayload('anthropic', baseUrl, modelsUrl, apiKey, signal);
 };
 
 const fetchRemoteModelsPayload = async (

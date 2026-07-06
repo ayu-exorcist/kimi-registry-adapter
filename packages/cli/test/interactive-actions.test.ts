@@ -193,6 +193,13 @@ describe('interactive provider actions', () => {
       stateDir: '/state',
       providerId: 'provider-a',
     });
+    expect(mocks.selectPrompt).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        message: 'Update provider-a',
+        initialValue: 'name',
+      }),
+    );
     expect(mocks.showNote).toHaveBeenCalledWith(
       [
         'provider: provider-a',

@@ -24,13 +24,13 @@ const stateGitIgnoreContent = (): string =>
     '',
   ].join('\n');
 
-export const ensureStateGitIgnore = (stateDir: string): string => {
+const ensureStateGitIgnore = (stateDir: string): string => {
   const gitignorePath = resolve(stateDir, '.gitignore');
   writeFileSync(gitignorePath, stateGitIgnoreContent(), 'utf8');
   return gitignorePath;
 };
 
-export const ensureStateGitIgnoreAsync = async (stateDir: string): Promise<string> => {
+const ensureStateGitIgnoreAsync = async (stateDir: string): Promise<string> => {
   const gitignorePath = resolve(stateDir, '.gitignore');
   await writeFile(gitignorePath, stateGitIgnoreContent(), 'utf8');
   return gitignorePath;
@@ -65,7 +65,7 @@ const markStateGitRepoConfigured = (stateDir: string): void => {
 const isStateGitRepoConfigured = (stateDir: string): boolean =>
   configuredStateGitRepos.has(resolve(stateDir));
 
-export const ensureStateGitRepo = (stateDir: string): boolean => {
+const ensureStateGitRepo = (stateDir: string): boolean => {
   try {
     let initialized = false;
     if (!existsSync(resolve(stateDir, '.git'))) {
@@ -122,6 +122,21 @@ export type StateCommitInput = {
   body?: string;
 };
 
+const commitArgsForStagedPaths = (
+  staged: string,
+  subject: string,
+  body: string | undefined,
+): string[] | undefined => {
+  if (!staged) {
+    return undefined;
+  }
+
+  const stagedPaths = staged.split(/\r?\n/u).filter(Boolean);
+  return body
+    ? ['commit', '-m', subject, '-m', body, '--', ...stagedPaths]
+    : ['commit', '-m', subject, '--', ...stagedPaths];
+};
+
 export const commitStateChanges = ({
   stateDir,
   paths,
@@ -140,15 +155,14 @@ export const commitStateChanges = ({
     }
   }
 
-  const staged = runGit(stateDir, ['diff', '--cached', '--name-only', '--', ...paths]);
-  if (!staged) {
+  const args = commitArgsForStagedPaths(
+    runGit(stateDir, ['diff', '--cached', '--name-only', '--', ...paths]),
+    subject,
+    body,
+  );
+  if (!args) {
     return undefined;
   }
-
-  const stagedPaths = staged.split(/\r?\n/u).filter(Boolean);
-  const args = body
-    ? ['commit', '-m', subject, '-m', body, '--', ...stagedPaths]
-    : ['commit', '-m', subject, '--', ...stagedPaths];
   runGit(stateDir, args);
   return runGit(stateDir, ['rev-parse', '--short', 'HEAD']);
 };
@@ -171,15 +185,14 @@ export const commitStateChangesAsync = async ({
     }
   }
 
-  const staged = await runGitAsync(stateDir, ['diff', '--cached', '--name-only', '--', ...paths]);
-  if (!staged) {
+  const args = commitArgsForStagedPaths(
+    await runGitAsync(stateDir, ['diff', '--cached', '--name-only', '--', ...paths]),
+    subject,
+    body,
+  );
+  if (!args) {
     return undefined;
   }
-
-  const stagedPaths = staged.split(/\r?\n/u).filter(Boolean);
-  const args = body
-    ? ['commit', '-m', subject, '-m', body, '--', ...stagedPaths]
-    : ['commit', '-m', subject, '--', ...stagedPaths];
   await runGitAsync(stateDir, args);
   return runGitAsync(stateDir, ['rev-parse', '--short', 'HEAD']);
 };

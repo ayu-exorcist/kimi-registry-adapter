@@ -10,7 +10,7 @@ import { Hono } from 'hono';
 
 import { inspectRegistries, loadProviderRegistry, type ServerHealth } from './registry-listing';
 
-export { createHealthSnapshot, listAvailableRegistries } from './registry-listing';
+export { createHealthSnapshot } from './registry-listing';
 
 export type UpdateHealthSnapshot = {
   status: 'idle' | 'running' | 'ok' | 'degraded';
@@ -23,7 +23,7 @@ export type UpdateHealthSnapshot = {
   failedProviderIds?: string[];
 };
 
-export type RuntimeHealth = ServerHealth & {
+type RuntimeHealth = ServerHealth & {
   stateDir: string;
   updates?: UpdateHealthSnapshot;
 };
@@ -69,7 +69,7 @@ const loadAllRegistries = (stateDir: string): RegistryCache => {
   return { registries, invalidRegistries };
 };
 
-export const createRegistryCache = (stateDir: string): RegistryCache => loadAllRegistries(stateDir);
+const createRegistryCache = (stateDir: string): RegistryCache => loadAllRegistries(stateDir);
 
 const aggregateRegistries = (cache: RegistryCache): EditableRegistry => {
   const aggregate = cache.aggregate ?? Object.assign({}, ...Array.from(cache.registries.values()));
@@ -164,14 +164,6 @@ export const createRegistryRuntime = (
     loadFile,
     deleteFile,
   };
-};
-
-export const createRegistryApp = (
-  stateDir: string,
-  cache: RegistryCache = createRegistryCache(stateDir),
-  options: { updateHealth?: () => UpdateHealthSnapshot } = {},
-) => {
-  return createRegistryRuntime(stateDir, cache, options).app;
 };
 
 type Watcher = {

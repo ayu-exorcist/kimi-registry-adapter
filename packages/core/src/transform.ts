@@ -207,16 +207,10 @@ const findMetadataModel = (
   return { model: normalized, matchType: 'normalized' };
 };
 
-export const DEFAULT_MODEL_INCLUDE_PATTERNS = ['*'];
-export const DEFAULT_MODEL_EXCLUDE_PATTERNS = [
-  '*embedding*',
-  '*embed*',
-  '*rerank*',
-  '*tts*',
-  '*whisper*',
-];
-export const DEFAULT_FALLBACK_CONTEXT = 131072;
-export const DEFAULT_FALLBACK_TOOL_CALL = false;
+const DEFAULT_MODEL_INCLUDE_PATTERNS = ['*'];
+const DEFAULT_MODEL_EXCLUDE_PATTERNS = ['*embedding*', '*embed*', '*rerank*', '*tts*', '*whisper*'];
+const DEFAULT_FALLBACK_CONTEXT = 131072;
+const DEFAULT_FALLBACK_TOOL_CALL = false;
 
 export const transformDiscoveredModelsToRegistryDetailed = ({
   config,

@@ -14,7 +14,7 @@ const authProviderSchema = z.strictObject({
   apiKeyEnv: z.optional(nonEmptyString),
 });
 
-export const authConfigSchema = z.strictObject({
+const authConfigSchema = z.strictObject({
   providers: zDefault(z.record(nonEmptyString, authProviderSchema), {}),
 });
 

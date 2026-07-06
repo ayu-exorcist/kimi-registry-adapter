@@ -9,27 +9,13 @@ import {
   removeProviderFromConfig,
   writeConfigAsync,
   type KraConfig,
-  type ProviderConfig,
 } from './config';
 import { isFileNotFoundError } from './fs-error';
 import { commitStateChangesAsync } from './git';
-import type { ProviderType } from './provider-descriptor';
+import type { ProviderDefinitionInput } from './provider-definition';
 import { assertPathInside, normalizeProviderId, providerRegistryGitPath } from './provider-id';
 import { createStatePaths, type UpdateState } from './state';
 import type { UpdateMode } from './update';
-
-type ProviderDefinitionInput = {
-  providerId: string;
-  baseUrl: string;
-  type: ProviderType;
-  modelSource?: ProviderConfig['modelSource'];
-  modelsMetadataPath?: string;
-  apiKeyEnv?: string;
-  npm?: string;
-  name?: string;
-  include?: string[];
-  exclude?: string[];
-};
 
 export type SaveProviderDefinitionInput = {
   stateDir: string;

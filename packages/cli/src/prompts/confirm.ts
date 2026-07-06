@@ -4,22 +4,17 @@ import pc from 'picocolors';
 
 import {
   createPromptReadline,
+  createPromptSession,
   handleCommonPromptKey,
-  interactiveHomeSymbol,
   promptStateIcon,
   promptSymbols,
-  renderPromptDetail,
+  renderPromptDetails,
+  renderPromptHint,
   type PromptDetail,
 } from './prompt-core';
-import {
-  clearTerminalScreen,
-  FrameRenderer,
-  renderAppHeader,
-  terminalContentWidth,
-  wrapPlainText,
-} from './screen';
+import { FrameRenderer } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { createPromptCleanup, promptInput, subscribeTerminalResize } from './terminal-session';
+import { promptInput } from './terminal-session';
 
 export interface ConfirmPromptOptions {
   message: string;
@@ -32,18 +27,7 @@ const S_RADIO_ACTIVE = promptSymbols.radioActive;
 const S_RADIO_INACTIVE = promptSymbols.radioInactive;
 const S_BAR = promptSymbols.bar;
 
-export const confirmCancelSymbol = Symbol('confirm-cancel');
-
-const promptLinePrefix = (): string => `${S_BAR}  `;
-
-const renderWrappedPromptLine = (
-  value: string,
-  renderValue: (line: string) => string,
-): string[] => {
-  return wrapPlainText(value, terminalContentWidth(promptLinePrefix())).map(
-    (line) => `${promptLinePrefix()}${renderValue(line)}`,
-  );
-};
+const confirmCancelSymbol = Symbol('confirm-cancel');
 
 export const confirmPrompt = async (options: ConfirmPromptOptions): Promise<boolean | symbol> => {
   const { message, details = [], initialValue = true, clearOnExit = true } = options;
@@ -54,23 +38,8 @@ export const confirmPrompt = async (options: ConfirmPromptOptions): Promise<bool
     let value = initialValue;
     const frame = new FrameRenderer();
 
-    const redrawScreen = (): void => {
-      frame.reset();
-      clearTerminalScreen();
-      renderAppHeader();
-      render();
-    };
-
-    const resizeHandler = (): void => {
-      redrawScreen();
-    };
-
-    const clearRender = (): void => {
-      frame.clear();
-    };
-
     const render = (state: 'active' | 'submit' | 'cancel' = 'active'): void => {
-      clearRender();
+      frame.clear();
       const icon = promptStateIcon(state);
       const hint = formatShortcutHint(
         '↑↓ move · enter/→ confirm · esc/← back · alt+h main menu · ctrl+c exit',
@@ -81,12 +50,8 @@ export const confirmPrompt = async (options: ConfirmPromptOptions): Promise<bool
       const noRadio = value ? S_RADIO_INACTIVE : S_RADIO_ACTIVE;
       const lines = [
         `${icon}  ${pc.bold(message)}`,
-        ...details.flatMap((detail) =>
-          renderWrappedPromptLine(detail.text, (line) =>
-            renderPromptDetail({ ...detail, text: line }),
-          ),
-        ),
-        ...renderWrappedPromptLine(hint, (line) => pc.dim(line)),
+        ...renderPromptDetails(details),
+        ...renderPromptHint(hint),
         `${S_BAR}`,
         `${S_BAR} ${yesCursor} ${yesRadio} Yes`,
         `${S_BAR} ${noCursor} ${noRadio} No`,
@@ -95,41 +60,18 @@ export const confirmPrompt = async (options: ConfirmPromptOptions): Promise<bool
       frame.render(lines);
     };
 
-    const resizeSubscription = subscribeTerminalResize(resizeHandler);
-
-    const cleanup = createPromptCleanup({
+    const { redrawScreen, cleanup, finish, goHome } = createPromptSession<boolean>({
       readlineInterface: rl,
+      frame,
+      render,
       keypressHandler: () => keypressHandler,
-      resizeSubscription,
+      clearOnExit,
+      resolve,
     });
 
-    const submit = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('submit');
-      }
-      cleanup();
-      resolve(value);
-    };
+    const submit = (): void => finish(value, 'submit');
 
-    const cancel = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      } else {
-        render('cancel');
-      }
-      cleanup();
-      resolve(confirmCancelSymbol);
-    };
-
-    const goHome = (): void => {
-      if (clearOnExit) {
-        clearRender();
-      }
-      cleanup();
-      resolve(interactiveHomeSymbol);
-    };
+    const cancel = (): void => finish(confirmCancelSymbol, 'cancel');
 
     const keypressHandler = (char: string, key: readline.Key): void => {
       if (!key) return;

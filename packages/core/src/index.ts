@@ -6,6 +6,7 @@ export {
   type RetryOptions,
 } from './fetch-client';
 export * from './operations';
+export * from './provider-definition';
 export * from './provider-descriptor';
 export * from './provider-id';
 export type { ModelCapabilityFieldName } from './model-capability-definition';

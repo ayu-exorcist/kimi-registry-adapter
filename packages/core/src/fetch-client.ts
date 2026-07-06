@@ -31,7 +31,7 @@ export class KraFetchError extends Error {
   }
 }
 
-export const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
+const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
 const DEFAULT_RETRY_DELAY_MS = 250;
 const DEFAULT_IDEMPOTENT_RETRIES = 1;
 const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
@@ -127,7 +127,7 @@ const classifyFetchFailure = (
   });
 };
 
-export const createBusinessFetchError = (
+const createBusinessFetchError = (
   message: string,
   options: { url: string; status?: number; cause?: unknown },
 ): KraFetchError => new KraFetchError('business', message, options);
@@ -136,6 +136,15 @@ export const createParseFetchError = (
   message: string,
   options: { url: string; cause?: unknown },
 ): KraFetchError => new KraFetchError('parse', message, options);
+
+export const assertOkResponse = (response: Response, message: string): void => {
+  if (!response.ok) {
+    throw createBusinessFetchError(`${message}: ${response.status}`, {
+      url: response.url,
+      status: response.status,
+    });
+  }
+};
 
 export const fetchResponse = async (
   input: FetchInput,

@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 
 import {
-  createBusinessFetchError,
+  assertOkResponse,
   currentFetchImplementation,
   fetchResponse,
   formatNetworkError,
@@ -43,15 +43,6 @@ export const clearModelsMetadataCache = (): void => {
 
 const throwIfAborted = (signal: AbortSignal | undefined): void => {
   signal?.throwIfAborted();
-};
-
-const assertOkResponse = (response: Response, message: string): void => {
-  if (!response.ok) {
-    throw createBusinessFetchError(`${message}: ${response.status}`, {
-      url: response.url,
-      status: response.status,
-    });
-  }
 };
 
 const readRemoteModelsMetadata = async (

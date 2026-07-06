@@ -49,7 +49,7 @@ export const modelIdsMatchingInclude = (
   return modelIds.filter((modelId) => patterns.some((pattern) => pattern.test(modelId)));
 };
 
-export const fetchModelIdsWithFeedback = async (options: {
+const fetchModelIdsWithFeedback = async (options: {
   baseUrl: string;
   type: ProviderType;
   modelSource?: ProviderConfig['modelSource'];

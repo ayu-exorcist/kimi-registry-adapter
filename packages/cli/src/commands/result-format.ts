@@ -9,9 +9,9 @@ const RESULT_LABEL_WIDTH = 18;
 const RESULT_BOX_SIDE_WIDTH = 4;
 const RESULT_BOX_TERMINAL_MARGIN = 1;
 
-export const visibleWidth = (value: string): number => stripVTControlCharacters(value).length;
+const visibleWidth = (value: string): number => stripVTControlCharacters(value).length;
 
-export const resultInnerWidth = (): number => {
+const resultInnerWidth = (): number => {
   const columns = Math.max(40, process.stdout.columns ?? 80);
   return Math.max(20, columns - RESULT_BOX_SIDE_WIDTH - RESULT_BOX_TERMINAL_MARGIN);
 };

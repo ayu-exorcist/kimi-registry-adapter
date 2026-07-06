@@ -2,41 +2,25 @@ import { resolve } from 'node:path';
 
 import { readAuthConfig, resolveProviderApiKey } from '../auth';
 import type { ProviderConfig } from '../config';
-import { withProviderLock, withStateDirLock } from '../lock';
+import { withStateDirLock } from '../lock';
 import { normalizeProviderId } from '../provider-id';
 import {
   fetchProviderModels,
   type DiscoveredModel,
   type ProviderModelSourceRuntime,
 } from '../provider-model-source';
-import { createStatePaths } from '../state';
-import { persistUpdateModeAsync, readExistingOrDefaultConfig } from '../state-directory-mutation';
+import { persistUpdateModeAsync } from '../state-directory-mutation';
 import type { MetadataMatchSummary } from '../transform';
-import {
-  applyPreparedProviderUpdate,
-  prepareProviderUpdate,
-  type UpdateMode,
-  type UpdateProviderRuntime,
-} from '../update';
+import { prepareProviderUpdate, type UpdateProviderOptions } from '../update';
+import { readConfiguredProvider } from './provider-state';
 import type { ProviderIdInput, StateDirInput } from './types';
 import {
-  commitAppliedProviderUpdate,
-  countGeneratedModels,
-  summarizeUpdateState,
+  applyPreparedProviderUpdateOperation,
+  providerUpdatePreparationInput,
   type UpdateStateSummary,
 } from './update-helpers';
 
-export type UpdateProviderInput = StateDirInput &
-  ProviderIdInput & {
-    models?: DiscoveredModel[];
-    apiKey?: string;
-    dryRun?: boolean;
-    force?: boolean;
-    updateMode?: UpdateMode;
-    now?: () => Date;
-    signal?: AbortSignal;
-    runtime?: Partial<UpdateProviderRuntime>;
-  };
+export type UpdateProviderInput = UpdateProviderOptions;
 
 export type FetchConfiguredProviderModelsInput = StateDirInput &
   ProviderIdInput & {
@@ -64,15 +48,7 @@ export type UpdateProviderOperationResult = {
 export const fetchConfiguredProviderModels = async (
   input: FetchConfiguredProviderModelsInput,
 ): Promise<FetchConfiguredProviderModelsResult> => {
-  const stateDir = resolve(input.stateDir);
-  const providerId = normalizeProviderId(input.providerId);
-  const paths = createStatePaths(stateDir, providerId);
-  const config = readExistingOrDefaultConfig(paths.configPath);
-  const provider = config.providers[providerId];
-
-  if (!provider) {
-    throw new Error(`Unknown provider: ${providerId}`);
-  }
+  const { providerId, paths, provider } = readConfiguredProvider(input, 'Unknown provider');
 
   input.signal?.throwIfAborted();
   const apiKey =
@@ -104,44 +80,22 @@ export const updateProviderOperation = async (
       persistUpdateModeAsync(stateDir, providerId, input.updateMode),
     );
   }
-  const prepared = await prepareProviderUpdate({
-    stateDir,
-    providerId,
-    ...(inputModels ? { models: inputModels } : {}),
-    ...(input.apiKey ? { apiKey: input.apiKey } : {}),
-    ...(input.now ? { now: input.now } : {}),
-    ...(input.signal ? { signal: input.signal } : {}),
-    ...(input.runtime ? { runtime: input.runtime } : {}),
-  });
-
-  return withProviderLock(stateDir, providerId, async () => {
-    input.signal?.throwIfAborted();
-    const result = applyPreparedProviderUpdate({
+  const prepared = await prepareProviderUpdate(
+    providerUpdatePreparationInput({
+      ...input,
       stateDir,
       providerId,
-      prepared,
-      ...(input.dryRun ? { dryRun: true } : {}),
-      ...(input.force ? { force: true } : {}),
-      ...(input.updateMode ? { updateMode: input.updateMode } : {}),
-    });
-    input.signal?.throwIfAborted();
-    const modelCount = countGeneratedModels(result, providerId);
-    const commit = input.dryRun
-      ? undefined
-      : await commitAppliedProviderUpdate({
-          stateDir,
-          providerId,
-          modelCount,
-          updateState: result.updateState,
-          ...(input.signal ? { signal: input.signal } : {}),
-        });
+      ...(inputModels ? { models: inputModels } : {}),
+    }),
+  );
 
-    return {
-      editablePath: result.editablePath,
-      modelCount,
-      updateStateSummary: summarizeUpdateState(result.updateState),
-      metadataMatchSummary: result.metadataMatchSummary,
-      ...(commit ? { commit } : {}),
-    };
+  return applyPreparedProviderUpdateOperation({
+    stateDir,
+    providerId,
+    prepared,
+    ...(input.dryRun ? { dryRun: true } : {}),
+    ...(input.force ? { force: true } : {}),
+    ...(input.updateMode ? { updateMode: input.updateMode } : {}),
+    ...(input.signal ? { signal: input.signal } : {}),
   });
 };

@@ -78,10 +78,10 @@ export const stringDisplayWidth = (value: string): number => {
   return width;
 };
 
-export const visualRowsForLine = (line: string, columns: number): number =>
+const visualRowsForLine = (line: string, columns: number): number =>
   Math.max(1, Math.ceil(stringDisplayWidth(line) / Math.max(1, columns)));
 
-export const countVisualRowsForLines = (lines: string[], columns: number | undefined): number => {
+const countVisualRowsForLines = (lines: string[], columns: number | undefined): number => {
   const cols = columns && columns > 0 ? columns : 80;
   return lines.reduce(
     (sum, line) =>
@@ -153,10 +153,6 @@ export const wrapPlainText = (value: string, width: number): string[] => {
   return lines;
 };
 
-export const prefixedLines = (prefix: string, value: string): string[] => {
-  return wrapPlainText(value, terminalContentWidth(prefix)).map((line) => `${prefix}${line}`);
-};
-
 export const renderAppHeader = (options: { spacer?: boolean } = {}): void => {
   const { spacer = true } = options;
   const output = promptOutput();
@@ -164,10 +160,6 @@ export const renderAppHeader = (options: { spacer?: boolean } = {}): void => {
   if (spacer) {
     output.write(`${pc.dim('│')}\n`);
   }
-};
-
-export const renderScreenHint = (message: string): void => {
-  promptOutput().write(`${pc.dim('│')}  ${pc.dim(message)}\n`);
 };
 
 export const waitForScreenExit = async (

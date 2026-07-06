@@ -1,19 +1,19 @@
-import { withProviderLock, withStateDirLock } from '../lock';
+import { withStateDirLock } from '../lock';
 import { normalizeProviderId } from '../provider-id';
+import type { DiscoveredModel } from '../provider-model-source';
 import {
   commitProviderConfigChangeAsync,
+  configureProviderAuthAsync,
   persistUpdateModeAsync,
   saveProviderDefinitionAsync,
 } from '../state-directory-mutation';
 import type { MetadataMatchSummary } from '../transform';
-import {
-  applyPreparedProviderUpdate,
-  prepareProviderUpdate,
-  type UpdateMode,
-  type UpdateProviderRuntime,
-} from '../update';
+import { prepareProviderUpdate, type UpdateMode, type UpdateProviderRuntime } from '../update';
 import type { ProviderDefinitionInput, StateDirInput } from './types';
-import { commitAppliedProviderUpdate, countGeneratedModels } from './update-helpers';
+import {
+  applyPreparedProviderUpdateOperation,
+  providerUpdatePreparationInput,
+} from './update-helpers';
 
 export type SaveProviderInput = StateDirInput &
   ProviderDefinitionInput & {
@@ -49,6 +49,8 @@ export const saveProvider = async (input: SaveProviderInput): Promise<SaveProvid
 
 export type SetupProviderInput = SaveProviderInput & {
   apiKey?: string;
+  storeApiKey?: boolean;
+  models?: DiscoveredModel[];
   updateMode?: UpdateMode;
   updateNow?: boolean;
   now?: () => Date;
@@ -72,6 +74,13 @@ export const setupProviderOperation = async (
   const safeInput = { ...input, providerId };
   const saved = await withStateDirLock(input.stateDir, async () => {
     const saved = await saveProviderUnlocked({ ...safeInput, commit: false });
+    if (input.storeApiKey && input.apiKey) {
+      await configureProviderAuthAsync({
+        stateDir: saved.stateDir,
+        providerId,
+        apiKey: input.apiKey,
+      });
+    }
     await persistUpdateModeAsync(saved.stateDir, providerId, input.updateMode);
     return saved;
   });
@@ -82,15 +91,10 @@ export const setupProviderOperation = async (
   let commit: string | undefined;
 
   if (input.updateNow !== false) {
-    const prepared = await prepareProviderUpdate({
-      stateDir: saved.stateDir,
-      providerId,
-      ...(input.apiKey ? { apiKey: input.apiKey } : {}),
-      ...(input.now ? { now: input.now } : {}),
-      ...(input.signal ? { signal: input.signal } : {}),
-      ...(input.runtime ? { runtime: input.runtime } : {}),
-    });
-    const result = await applySetupProviderUpdate({
+    const prepared = await prepareProviderUpdate(
+      providerUpdatePreparationInput({ ...input, stateDir: saved.stateDir, providerId }),
+    );
+    const result = await applyPreparedProviderUpdateOperation({
       stateDir: saved.stateDir,
       providerId,
       prepared,
@@ -114,47 +118,4 @@ export const setupProviderOperation = async (
     setupResult.modelCount = modelCount;
   }
   return setupResult;
-};
-
-type ApplySetupProviderUpdateInput = Pick<
-  SetupProviderInput,
-  'stateDir' | 'providerId' | 'updateMode' | 'signal'
-> & {
-  prepared: Awaited<ReturnType<typeof prepareProviderUpdate>>;
-};
-
-const applySetupProviderUpdate = async ({
-  stateDir,
-  providerId,
-  prepared,
-  updateMode,
-  signal,
-}: ApplySetupProviderUpdateInput): Promise<{
-  editablePath: string;
-  modelCount: number;
-  metadataMatchSummary: MetadataMatchSummary;
-  commit?: string;
-}> => {
-  return withProviderLock(stateDir, providerId, async () => {
-    const result = applyPreparedProviderUpdate({
-      stateDir,
-      providerId,
-      prepared,
-      ...(updateMode ? { updateMode } : {}),
-    });
-    const modelCount = countGeneratedModels(result, providerId);
-    const commit = await commitAppliedProviderUpdate({
-      stateDir,
-      providerId,
-      modelCount,
-      updateState: result.updateState,
-      ...(signal ? { signal } : {}),
-    });
-    return {
-      editablePath: result.editablePath,
-      modelCount,
-      metadataMatchSummary: result.metadataMatchSummary,
-      ...(commit ? { commit } : {}),
-    };
-  });
 };

@@ -7,6 +7,7 @@ import { normalizeProviderId } from '../provider-id';
 import { createStatePaths } from '../state';
 import { readExistingOrDefaultConfig } from '../state-directory-mutation';
 import type { UpdateMode } from '../update';
+import { readConfiguredProvider } from './provider-state';
 import type { ProviderIdInput, StateDirInput } from './types';
 
 export type SetProviderConfigApiKeyEnvInput = StateDirInput &
@@ -88,16 +89,7 @@ export const setProviderModelInclude = async (
 export const getProviderConfig = (
   input: StateDirInput & ProviderIdInput,
 ): GetProviderConfigResult => {
-  const stateDir = resolve(input.stateDir);
-  const providerId = normalizeProviderId(input.providerId);
-  const paths = createStatePaths(stateDir, providerId);
-  const config = readExistingOrDefaultConfig(paths.configPath);
-  const provider = config.providers[providerId];
-
-  if (!provider) {
-    throw new Error(`Provider not found in config: ${providerId}`);
-  }
-
+  const { providerId, paths, provider } = readConfiguredProvider(input);
   return {
     providerId,
     configPath: paths.configPath,

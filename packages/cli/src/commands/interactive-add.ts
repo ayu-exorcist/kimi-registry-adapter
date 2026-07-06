@@ -44,7 +44,6 @@ export {
   getNextAddProviderStepId,
   getPreviousAddProviderStepId,
   type AddProviderState,
-  type AddProviderStepId,
 } from './interactive-add-wizard';
 
 const getAddProviderWizardStepId = (actor: AddProviderWizardActor): AddProviderStepId =>

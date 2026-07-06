@@ -60,7 +60,7 @@ export const renameWithRetrySync = (
   }
 };
 
-export const renameWithRetry = async (
+const renameWithRetry = async (
   fromPath: string,
   toPath: string,
   options: AtomicWriteOptions = {},

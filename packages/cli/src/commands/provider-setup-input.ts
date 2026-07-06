@@ -3,6 +3,7 @@ import type {
   ProviderConfig,
   ProviderDefinitionFields,
   ProviderType,
+  SetupProviderInput,
 } from '@kastral/kra-core';
 
 import type { UpdateMode } from './args';
@@ -58,7 +59,9 @@ export const providerDefinitionOptionsFromDraft = (
   };
 };
 
-export const providerSetupOperationInputFromDraft = (draft: ProviderSetupDraft) => ({
+export const providerSetupOperationInputFromDraft = (
+  draft: ProviderSetupDraft,
+): SetupProviderInput => ({
   stateDir: draft.stateDir,
   providerId: draft.providerId,
   ...providerDefinitionFieldsFromDraft(draft),

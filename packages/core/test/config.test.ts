@@ -12,24 +12,15 @@ import {
   readConfig,
   writeConfig,
 } from '../src/internal';
+import type { JsonSchemaObject } from '../src/internal';
 import { expectRecordValue } from './test-helpers';
 
 const createTempDir = (): string => mkdtempSync(join(tmpdir(), 'kra-config-'));
 
-const readPublishedConfigSchema = (): Record<string, unknown> =>
+const readPublishedConfigSchema = (): JsonSchemaObject =>
   JSON.parse(
     readFileSync(new URL('../../../schemas/config.schema.json', import.meta.url), 'utf8'),
-  ) as Record<string, unknown>;
-
-type JsonSchemaObject = {
-  additionalProperties?: boolean | JsonSchemaObject;
-  enum?: string[];
-  items?: JsonSchemaObject;
-  oneOf?: JsonSchemaObject[];
-  properties?: Record<string, JsonSchemaObject>;
-  required?: string[];
-  type?: string;
-};
+  ) as JsonSchemaObject;
 
 const requireJsonSchemaObject = (
   value: boolean | JsonSchemaObject | undefined,
@@ -45,7 +36,7 @@ const sortedKeys = (value: Record<string, unknown> | undefined): string[] =>
   Object.keys(value ?? {}).toSorted((left, right) => left.localeCompare(right));
 
 const publishedProviderProperties = (): Record<string, JsonSchemaObject> => {
-  const schema = readPublishedConfigSchema() as JsonSchemaObject;
+  const schema = readPublishedConfigSchema();
   const providers = schema.properties?.['providers'];
   const providerSchema = requireJsonSchemaObject(
     providers?.additionalProperties,
@@ -78,7 +69,7 @@ describe('config', () => {
   });
 
   it('keeps the published JSON schema aligned with provider config fields', () => {
-    const schema = readPublishedConfigSchema() as JsonSchemaObject;
+    const schema = readPublishedConfigSchema();
     expect(sortedKeys(schema.properties)).toEqual(['$schema', 'providers', 'server', 'update']);
     expect(schema.required).toEqual([]);
 

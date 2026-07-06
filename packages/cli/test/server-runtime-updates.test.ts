@@ -111,7 +111,8 @@ describe('serve provider update scheduling', () => {
       '2026-07-03T00:00:03.000Z',
     ];
     let dateIndex = 0;
-    const tracker = createServeUpdateTracker(() => new Date(dates[dateIndex++]!));
+    const nextDate = (): Date => new Date(String(dates[dateIndex++]));
+    const tracker = createServeUpdateTracker(nextDate);
 
     const providerResults = new Map<string, () => Promise<UpdateProviderOperationResult>>([
       [

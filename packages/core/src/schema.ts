@@ -136,9 +136,11 @@ export type EditableModel = z.infer<typeof editableModelSchema>;
 export type GeneratedRegistry = z.infer<typeof generatedRegistrySchema>;
 export type EditableRegistry = z.infer<typeof editableRegistrySchema>;
 export type ServedRegistry = z.infer<typeof servedRegistrySchema>;
+export type KimiImportSubset = z.infer<typeof kimiImportSubsetSchema>;
 
 export const validateGeneratedRegistry = (value: unknown): GeneratedRegistry =>
   generatedRegistrySchema.parse(value);
 export const validateEditableRegistry = (value: unknown): EditableRegistry =>
   editableRegistrySchema.parse(value);
-export const validateKimiImportSubset = (value: unknown) => kimiImportSubsetSchema.parse(value);
+export const validateKimiImportSubset = (value: unknown): KimiImportSubset =>
+  kimiImportSubsetSchema.parse(value);

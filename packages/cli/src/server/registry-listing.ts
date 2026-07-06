@@ -5,6 +5,7 @@ import {
   getProviderRegistryPath,
   normalizeProviderId,
   validateEditableRegistry,
+  type EditableRegistry,
 } from '@kastral/kra-core';
 
 export type ServerHealth = {
@@ -32,11 +33,14 @@ export type RegistryInspection = {
   invalid: InvalidRegistryListing[];
 };
 
-const loadRegistry = (registryPath: string) => {
+const loadRegistry = (registryPath: string): EditableRegistry => {
   return validateEditableRegistry(JSON.parse(readFileSync(registryPath, 'utf8')));
 };
 
-export const loadProviderRegistry = (registryPath: string, providerId: string) => {
+export const loadProviderRegistry = (
+  registryPath: string,
+  providerId: string,
+): EditableRegistry => {
   const registry = loadRegistry(registryPath);
   const safeProviderId = normalizeProviderId(providerId);
   if (!registry[safeProviderId] || Object.keys(registry).length !== 1) {

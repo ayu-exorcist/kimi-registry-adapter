@@ -6,17 +6,10 @@ import { describe, expect, it } from 'vitest';
 import {
   providerModelEndpointSourceKinds,
   providerTypes,
+  type JsonSchemaObject,
   type ProviderModelEndpointSourceKind,
   type ProviderType,
 } from '../src/internal';
-
-type JsonSchemaObject = {
-  properties?: Record<string, JsonSchemaObject>;
-  additionalProperties?: JsonSchemaObject | boolean;
-  oneOf?: JsonSchemaObject[];
-  enum?: unknown[];
-  const?: unknown;
-};
 
 const readConfigSchema = (): JsonSchemaObject => {
   return JSON.parse(

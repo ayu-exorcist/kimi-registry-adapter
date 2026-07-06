@@ -1,12 +1,5 @@
 import { encodeProviderIdForUrl, normalizeProviderId } from '../provider-id';
-
-type StateDirInput = {
-  stateDir: string;
-};
-
-type ProviderIdInput = {
-  providerId: string;
-};
+import type { ProviderIdInput, StateDirInput } from './types';
 
 export type PrintUrlInput = ProviderIdInput & {
   host: string;

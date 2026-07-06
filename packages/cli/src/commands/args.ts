@@ -4,9 +4,10 @@ import {
   isProviderModelSourceKind,
   providerModelSourceKindDescription,
   type ProviderConfig,
+  type UpdateMode,
 } from '@kastral/kra-core';
 
-export type UpdateMode = 'merge' | 'overwrite';
+export type { UpdateMode };
 
 export const parseModelSource = (
   kind: string | undefined,

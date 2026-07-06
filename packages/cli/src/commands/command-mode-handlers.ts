@@ -75,6 +75,12 @@ export type ServeCliArgs = Partial<{
   updateTimeoutMs: OptionalCliValue<string>;
 }>;
 
+export type ResolvedServeOptions = {
+  stateDir: string;
+  host: string;
+  requestedPort: number;
+};
+
 type NormalizedSetupProviderCliArgs = Omit<SetupProviderCliArgs, 'include' | 'exclude'> & {
   include?: string[];
   exclude?: string[];
@@ -206,7 +212,10 @@ export const runUpdateCommand = async (args: UpdateCliArgs): Promise<void> => {
   });
 };
 
-export const resolveServeOptions = (args: ServeCliArgs, defaults: CommandModeDefaults) => {
+export const resolveServeOptions = (
+  args: ServeCliArgs,
+  defaults: CommandModeDefaults,
+): ResolvedServeOptions => {
   const stateDir = resolve(requireCliString(args.stateDir, 'stateDir'));
   const config = getStateConfigSummary({ stateDir });
   const host = args.host ?? config.server.host ?? defaults.host;

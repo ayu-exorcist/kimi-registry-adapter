@@ -1,21 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { generateConfigJsonSchema, serializeConfigJsonSchema } from '../src/internal';
-
-type JsonSchemaObject = {
-  additionalProperties?: JsonSchemaObject | boolean;
-  const?: unknown;
-  default?: unknown;
-  description?: string;
-  enum?: unknown[];
-  oneOf?: JsonSchemaObject[];
-  properties?: Record<string, JsonSchemaObject>;
-  required?: string[];
-  title?: string;
-  type?: string;
-  $id?: string;
-  $schema?: string;
-};
+import type { JsonSchemaObject } from '../src/internal';
 
 const providerProperties = (schema: JsonSchemaObject): Record<string, JsonSchemaObject> => {
   const provider = schema.properties?.['providers']?.additionalProperties;
@@ -27,7 +13,7 @@ const providerProperties = (schema: JsonSchemaObject): Record<string, JsonSchema
 
 describe('config JSON schema generator', () => {
   it('generates published schema metadata and provider descriptions from the runtime schema', () => {
-    const schema = generateConfigJsonSchema() as JsonSchemaObject;
+    const schema = generateConfigJsonSchema();
 
     expect(schema['$schema']).toBe('https://json-schema.org/draft/2020-12/schema');
     expect(schema['$id']).toBe(

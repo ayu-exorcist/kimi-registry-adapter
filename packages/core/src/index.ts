@@ -35,6 +35,7 @@ export {
   type EditableRegistry,
   type GeneratedRegistry,
   type EditableModel,
+  type KimiImportSubset,
   type ServedRegistry,
   type SourceModel,
 } from './schema';
@@ -51,3 +52,4 @@ export {
   type TransformResult,
 } from './transform';
 export type { KraConfig, ModelOverride, ProviderConfig, ProviderModelSource } from './config';
+export type { UpdateMode } from './update';

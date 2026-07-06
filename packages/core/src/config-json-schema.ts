@@ -2,14 +2,21 @@ import * as z from 'zod/mini';
 
 import { configSchema } from './config';
 
-type JsonSchemaObject = {
+export type JsonSchemaObject = {
   [key: string]: unknown;
   properties?: Record<string, JsonSchemaObject>;
   additionalProperties?: JsonSchemaObject | boolean;
   oneOf?: JsonSchemaObject[];
+  enum?: unknown[];
   const?: unknown;
   default?: unknown;
   description?: string;
+  items?: JsonSchemaObject;
+  required?: string[];
+  title?: string;
+  type?: string;
+  $id?: string;
+  $schema?: string | undefined;
 };
 
 const asObject = (value: unknown, path: string): JsonSchemaObject => {

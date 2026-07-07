@@ -203,7 +203,7 @@ describe('mergeEditableRegistry', () => {
         id: 'provider',
         name: 'Provider',
         api: 'https://new.example.com/v1',
-        type: 'openai' as const,
+        type: 'anthropic' as const,
         models: {
           'gpt-4.1': {
             id: 'gpt-4.1',
@@ -233,6 +233,8 @@ describe('mergeEditableRegistry', () => {
 
     const provider = expectRecordValue(merged.editable, 'provider');
     const updatedModel = expectRecordValue(provider.models, 'gpt-4.1');
+    expect(provider.api).toBe('https://new.example.com/v1');
+    expect(provider.type).toBe('anthropic');
     expect(updatedModel.name).toBe('Manual Name');
     expect(updatedModel.limit?.context).toBe(262144);
     expect(expectRecordValue(provider.models, 'gpt-4.3')).toBeDefined();

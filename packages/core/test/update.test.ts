@@ -16,6 +16,7 @@ import {
   readModelsPayloadContent,
   resolveModelsUrl,
   updateProvider,
+  updateProviderConfig,
   writeConfig,
 } from '../src/internal';
 import { expectRecordValue } from './test-helpers';
@@ -240,6 +241,57 @@ describe('updateProvider', () => {
         lastUpdateStatus: 'ok',
         warnings: [],
         conflicts: [],
+      },
+    });
+  });
+
+  it('updates api.json provider fields when the config changes and merge has a baseline', async () => {
+    const stateDir = createTempDir();
+    const metadataPath = writeMetadataFixture(stateDir);
+    const configPath = join(stateDir, 'config.json');
+
+    const config = addProviderToConfig(createDefaultConfig(), 'provider', {
+      name: 'Provider',
+      baseUrl: 'https://gateway.example.com/v1',
+      type: 'openai',
+      modelsMetadataPath: metadataPath,
+      fallbackContext: 131072,
+      fallbackToolCall: true,
+      include: ['*'],
+      exclude: ['*embedding*'],
+      overrides: {},
+    });
+
+    writeConfig(configPath, config);
+
+    await updateProvider({
+      stateDir,
+      providerId: 'provider',
+      models: [{ id: 'gpt-4.1' }],
+    });
+
+    await updateProviderConfig({
+      stateDir,
+      providerId: 'provider',
+      type: 'anthropic',
+    });
+
+    const result = await updateProvider({
+      stateDir,
+      providerId: 'provider',
+      models: [{ id: 'claude-sonnet-4-5' }],
+    });
+
+    expect(result.generated).toMatchObject({
+      provider: {
+        type: 'anthropic',
+      },
+    });
+    expect(
+      JSON.parse(readFileSync(join(stateDir, 'registries', 'provider', 'api.json'), 'utf8')),
+    ).toMatchObject({
+      provider: {
+        type: 'anthropic',
       },
     });
   });

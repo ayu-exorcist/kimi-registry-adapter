@@ -84,20 +84,43 @@ export const mergeEditableRegistry = ({
       continue;
     }
 
+    const mergedProvider = structuredClone(currentProvider);
+
+    for (const [key, newValue] of Object.entries(generatedProvider)) {
+      if (key === 'models') {
+        continue;
+      }
+
+      const providerKey = key as keyof typeof generatedProvider;
+      const nextValue = mergeValue(
+        currentProvider[providerKey],
+        oldProvider?.[providerKey],
+        newValue,
+        {
+          providerId,
+          modelId: '__provider__',
+          fieldPath: [key],
+          conflicts,
+        },
+      );
+
+      Object.assign(mergedProvider, { [providerKey]: nextValue });
+    }
+
     if (!preserveUnknownModels) {
-      for (const modelId of Object.keys(currentProvider.models)) {
+      for (const modelId of Object.keys(mergedProvider.models)) {
         if (!generatedProvider.models[modelId]) {
-          delete currentProvider.models[modelId];
+          delete mergedProvider.models[modelId];
         }
       }
     }
 
     for (const [modelId, generatedModel] of Object.entries(generatedProvider.models)) {
-      const currentModel = currentProvider.models[modelId];
+      const currentModel = mergedProvider.models[modelId];
       const oldModel = oldProvider?.models[modelId];
 
       if (!currentModel) {
-        currentProvider.models[modelId] = structuredClone(generatedModel);
+        mergedProvider.models[modelId] = structuredClone(generatedModel);
         continue;
       }
 
@@ -118,8 +141,10 @@ export const mergeEditableRegistry = ({
         Object.assign(mergedModel, { [modelKey]: nextValue });
       }
 
-      currentProvider.models[modelId] = mergedModel;
+      mergedProvider.models[modelId] = mergedModel;
     }
+
+    merged[providerId] = mergedProvider;
   }
 
   return {

@@ -1,5 +1,11 @@
 # @kastral/kra
 
+## 0.1.3
+
+### Patch Changes
+
+- [`d74ea33`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/d74ea331385091a09800fcd2e176d5d1aaaf59e8) - Fix registry updates so provider-level fields like `type` and `api` are merged back into `api.json` during refresh instead of staying stale.
+
 ## 0.1.2
 
 ### Patch Changes

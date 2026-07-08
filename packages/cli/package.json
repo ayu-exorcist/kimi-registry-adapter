@@ -1,6 +1,6 @@
 {
   "name": "@kastral/kra",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Create and serve editable Kimi provider registries from OpenAI-compatible and Anthropic model sources.",
   "keywords": [
     "ai",

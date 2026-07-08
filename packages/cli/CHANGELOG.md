@@ -1,5 +1,13 @@
 # @kastral/kra
 
+## 0.1.4
+
+### Patch Changes
+
+- [`a6ed1f5`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/a6ed1f50c0d3c0772d172ed1c651ca2495f137fd) - Add opt-in structured diagnostics logging and stabilize interactive prompt input handling.
+
+  The CLI now keeps a shared readline keypress lifecycle across prompt transitions, preventing intermittent Windows/PowerShell menu freezes caused by repeated readline create/close cycles. Diagnostics can be enabled with `KRA_LOG=1` or `KRA_DEBUG=1` and are written to the KRA state directory by default.
+
 ## 0.1.3
 
 ### Patch Changes

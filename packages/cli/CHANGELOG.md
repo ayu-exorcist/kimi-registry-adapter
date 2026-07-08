@@ -1,5 +1,11 @@
 # @kastral/kra
 
+## 0.1.5
+
+### Patch Changes
+
+- [`722bab2`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/722bab2c77f3d736f9f303483672ba8f2288fe41) - Stabilize interactive prompt shutdown by reusing the shared readline session across prompts and disposing it when interactive mode exits.
+
 ## 0.1.4
 
 ### Patch Changes

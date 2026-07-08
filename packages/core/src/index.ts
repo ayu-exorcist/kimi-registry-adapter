@@ -53,3 +53,16 @@ export {
 } from './transform';
 export type { KraConfig, ModelOverride, ProviderConfig, ProviderModelSource } from './config';
 export type { UpdateMode } from './update';
+export * from './diagnostics';
+
+export {
+  createOperationLogger,
+  diagnosticsLogFile,
+  diagnosticsRunId,
+  logDebug,
+  logError,
+  logInfo,
+  logWarn,
+  redactDiagnosticsValue,
+  writeDiagnosticLog,
+} from './logger';

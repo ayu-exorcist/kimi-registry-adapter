@@ -1,3 +1,5 @@
+import { createOperationLogger } from './logger';
+
 type FetchInput = Parameters<typeof fetch>[0];
 
 export type FetchErrorKind = 'network' | 'timeout' | 'parse' | 'business';
@@ -164,12 +166,27 @@ export const fetchResponse = async (
   const retryDelayMs = retry?.delayMs ?? DEFAULT_RETRY_DELAY_MS;
   let lastError: KraFetchError | undefined;
 
+  const logger = createOperationLogger('core.fetch', {
+    method,
+    url,
+    operation,
+    timeoutMs,
+    retryCount,
+  });
+
   for (let attempt = 0; attempt <= retryCount; attempt += 1) {
     const timeout = createTimeoutSignal(timeoutMs);
+    const startedAt = Date.now();
+    logger.debug('request.start', { attempt });
     try {
       const response = await currentFetchImplementation()(input, {
         ...init,
         signal: mergeSignals(timeout.signal, init.signal),
+      });
+      logger.debug('request.response', {
+        attempt,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
       });
 
       if (attempt < retryCount && retryableStatusCodes.has(response.status)) {
@@ -178,17 +195,30 @@ export const fetchResponse = async (
           status: response.status,
         });
         await response.body?.cancel();
+        logger.warn('request.retry', { attempt, status: response.status, retryDelayMs });
         await sleep(retryDelayMs);
         continue;
       }
 
+      logger.debug('request.end', {
+        attempt,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+      });
       return response;
     } catch (error) {
       const fetchError = classifyFetchFailure(error, url, operation, timeout.didTimeout());
+      logger.warn('request.error', {
+        attempt,
+        kind: fetchError.kind,
+        message: fetchError.message,
+        durationMs: Date.now() - startedAt,
+      });
       lastError = fetchError;
       if (attempt >= retryCount) {
         throw fetchError;
       }
+      logger.warn('request.retry', { attempt, retryDelayMs });
       await sleep(retryDelayMs);
     } finally {
       timeout.dispose();

@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
+import { configureDiagnostics } from '@kastral/kra-core';
 import { defineCommand, runMain } from 'citty';
 import pc from 'picocolors';
 
@@ -29,6 +30,7 @@ import { selectPrompt } from './prompt-adapters';
 import { printConnectedSpacer, printIntro, printOutro, showInteractiveNote } from './render';
 
 const DEFAULT_STATE_DIR = resolve(homedir(), '.kimi-registry-adapter');
+configureDiagnostics({ defaultLogDir: resolve(DEFAULT_STATE_DIR, 'logs') });
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 2727;
 

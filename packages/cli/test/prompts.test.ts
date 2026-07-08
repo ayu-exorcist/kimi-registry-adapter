@@ -284,7 +284,7 @@ describe('prompt terminal session', () => {
     }
   });
 
-  it('runs cleanup only once', () => {
+  it('runs prompt cleanup only once without closing shared readline', () => {
     const setRawMode = vi.fn();
     const close = vi.fn();
     const keypressHandler = vi.fn();
@@ -311,7 +311,7 @@ describe('prompt terminal session', () => {
     expect(removeStdinListener).toHaveBeenCalledTimes(1);
     expect(removeStdoutListener).toHaveBeenCalledTimes(1);
     expect(removeProcessListener).toHaveBeenCalledTimes(1);
-    expect(close).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
     expect(setRawMode).toHaveBeenCalledTimes(2);
     expect(setRawMode).toHaveBeenLastCalledWith(false);
   });

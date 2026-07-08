@@ -7,6 +7,7 @@ import pc from 'picocolors';
 
 import { isInteractiveHome } from '../prompts/navigation';
 import { formatShortcutHint } from '../prompts/shortcut-hints';
+import { disposePromptReadline } from '../prompts/terminal-session';
 import { normalizeVariadicPatternOptions } from './args';
 import { createCommandModeSubcommands } from './command-mode';
 import {
@@ -137,7 +138,11 @@ const runInteractiveSetup = async (options: {
   host: string;
   port: string;
 }): Promise<void> => {
-  await runInteractiveMenu(options);
+  try {
+    await runInteractiveMenu(options);
+  } finally {
+    disposePromptReadline();
+  }
 };
 
 const commandModeSubcommands = createCommandModeSubcommands({

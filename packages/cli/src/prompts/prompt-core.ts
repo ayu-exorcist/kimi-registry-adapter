@@ -1,5 +1,4 @@
 import * as readline from 'node:readline';
-import { Writable } from 'node:stream';
 
 import pc from 'picocolors';
 
@@ -15,15 +14,9 @@ import {
   createPromptCleanup,
   exitPrompt,
   preparePromptInput,
-  promptInput,
+  sharedPromptReadline,
   subscribeTerminalResize,
 } from './terminal-session';
-
-const silentOutput = new Writable({
-  write(_chunk, _encoding, callback) {
-    callback();
-  },
-});
 
 export const promptSymbols = {
   stepActive: pc.green('◆'),
@@ -45,11 +38,7 @@ export type PromptDetail = {
 };
 
 export const createPromptReadline = (): readline.Interface => {
-  const rl = readline.createInterface({
-    input: promptInput(),
-    output: silentOutput,
-    terminal: false,
-  });
+  const rl = sharedPromptReadline();
   preparePromptInput(rl);
   return rl;
 };

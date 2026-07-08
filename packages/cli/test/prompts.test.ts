@@ -1,14 +1,17 @@
 import * as readline from 'node:readline';
+import { PassThrough } from 'node:stream';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { confirmPrompt } from '../src/prompts/confirm';
 import { inputPrompt } from '../src/prompts/input';
+import { createPromptReadline } from '../src/prompts/prompt-core';
 import { FrameRenderer, stringDisplayWidth } from '../src/prompts/screen';
 import { searchMultiselect } from '../src/prompts/search-multiselect';
 import { selectPrompt } from '../src/prompts/select';
 import {
   createPromptCleanup,
+  disposePromptReadline,
   exitPrompt,
   preparePromptInput,
   setPromptRuntime,
@@ -280,6 +283,42 @@ describe('prompt terminal session', () => {
       expect(write).toHaveBeenCalledWith('\nBye!\n');
       expect(exit).toHaveBeenCalledWith(0);
     } finally {
+      restore();
+    }
+  });
+
+  it('reuses shared readline without accumulating stdin listeners across prompts', () => {
+    const input = new PassThrough() as unknown as typeof process.stdin;
+    const setRawMode = vi.fn((enabled: boolean) => {
+      Object.defineProperty(input, 'isRaw', { configurable: true, value: enabled });
+      return input;
+    });
+    Object.defineProperty(input, 'isTTY', { configurable: true, value: true });
+    Object.defineProperty(input, 'isRaw', { configurable: true, value: false });
+    Object.defineProperty(input, 'setRawMode', { configurable: true, value: setRawMode });
+    const restore = setPromptRuntime({ input });
+
+    try {
+      disposePromptReadline();
+      const dataListenerCounts: number[] = [];
+      const endListenerCounts: number[] = [];
+
+      for (let index = 0; index < 6; index += 1) {
+        const readlineInterface = createPromptReadline();
+        const keypressHandler = vi.fn();
+        input.on('keypress', keypressHandler);
+        createPromptCleanup({
+          readlineInterface,
+          keypressHandler: () => keypressHandler,
+        })();
+        dataListenerCounts.push(input.listenerCount('data'));
+        endListenerCounts.push(input.listenerCount('end'));
+      }
+
+      expect(new Set(dataListenerCounts).size).toBe(1);
+      expect(new Set(endListenerCounts).size).toBe(1);
+    } finally {
+      disposePromptReadline();
       restore();
     }
   });

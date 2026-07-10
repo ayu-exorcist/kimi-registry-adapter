@@ -3,6 +3,7 @@ import { stripVTControlCharacters } from 'node:util';
 
 import pc from 'picocolors';
 
+import { colorize, subscribeColorPalette } from '../theme';
 import {
   createPromptFinisher,
   createPromptReadline,
@@ -21,7 +22,7 @@ import {
 } from './prompt-core';
 import { FrameRenderer, terminalContentWidth, wrapPlainText } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { createPromptCleanup, promptInput, subscribeTerminalResize } from './terminal-session';
+import { createPromptCleanup, promptKeyInput, subscribeTerminalResize } from './terminal-session';
 
 interface SearchItem<T> {
   value: T;
@@ -41,8 +42,6 @@ export interface SearchMultiselectOptions<T> {
   clearOnExit?: boolean;
 }
 
-const S_CHECKBOX_ACTIVE = promptSymbols.checkboxActive;
-const S_CHECKBOX_INACTIVE = promptSymbols.checkboxInactive;
 const S_BAR = promptSymbols.bar;
 
 const cancelSymbol = Symbol('cancel');
@@ -206,7 +205,9 @@ export const searchMultiselect = async <T>(
             const actualIndex = visibleStart + i;
             const isSelected = selected.has(item.value);
             const isCursor = actualIndex === cursor;
-            const checkbox = isSelected ? S_CHECKBOX_ACTIVE : S_CHECKBOX_INACTIVE;
+            const checkbox = isSelected
+              ? promptSymbols.checkboxActive
+              : promptSymbols.checkboxInactive;
             const prefix = isCursor ? '❯' : ' ';
             const indent = ' '.repeat(item.indent ?? 0);
             const itemPrefix = `${S_BAR} ${prefix} ${indent}${checkbox} `;
@@ -245,7 +246,7 @@ export const searchMultiselect = async <T>(
         if (selectedLabels.length === 0) {
           lines.push(`${S_BAR}  ${pc.dim('Selected: (none)')}`);
         } else if (allSelected) {
-          lines.push(`${S_BAR}  ${pc.green('Selected:')} All`);
+          lines.push(`${S_BAR}  ${colorize('primary', 'Selected:')} All`);
         } else {
           const summary =
             selectedLabels.length <= 3
@@ -253,13 +254,13 @@ export const searchMultiselect = async <T>(
               : `${selectedLabels.slice(0, 3).join(', ')} +${selectedLabels.length - 3} more`;
           for (const line of wrapPromptText(`Selected: ${summary}`)) {
             lines.push(
-              `${promptLinePrefix()}${line.replace(/^Selected:/u, pc.green('Selected:'))}`,
+              `${promptLinePrefix()}${line.replace(/^Selected:/u, colorize('primary', 'Selected:'))}`,
             );
           }
         }
         if (error) {
           for (const line of wrapPromptText(error)) {
-            lines.push(`${promptLinePrefix()}${pc.red(line)}`);
+            lines.push(`${promptLinePrefix()}${colorize('error', line)}`);
           }
         }
         lines.push(`${pc.dim('╰')}`);
@@ -279,11 +280,16 @@ export const searchMultiselect = async <T>(
 
     const resizeSubscription = subscribeTerminalResize(resizeHandler);
 
-    const cleanup = createPromptCleanup({
+    const cleanupPrompt = createPromptCleanup({
       readlineInterface: rl,
       keypressHandler: () => keypressHandler,
       resizeSubscription,
     });
+    const unsubscribeTheme = subscribeColorPalette(render);
+    const cleanup = (): void => {
+      unsubscribeTheme();
+      cleanupPrompt();
+    };
 
     const submit = (): void => {
       if (required && selected.size === 0) {
@@ -465,7 +471,7 @@ export const searchMultiselect = async <T>(
       }
     };
 
-    promptInput().on('keypress', keypressHandler);
+    promptKeyInput().on('keypress', keypressHandler);
     render();
   });
 };

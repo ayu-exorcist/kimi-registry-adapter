@@ -168,6 +168,7 @@ Provider 配置支持：
 - [运维与故障排查](./docs/operations.md)
 - [发布与 npm 发布](./docs/release.md)
 - [测试与校验](./docs/testing.md)
+- [终端主题集成](./docs/terminal-theme.md)
 
 ## 开发
 

@@ -2,6 +2,7 @@ import type * as readline from 'node:readline';
 
 import pc from 'picocolors';
 
+import { colorize } from '../theme';
 import {
   createPromptReadline,
   createPromptSession,
@@ -14,7 +15,7 @@ import {
 } from './prompt-core';
 import { FrameRenderer } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { promptInput } from './terminal-session';
+import { promptKeyInput } from './terminal-session';
 
 export interface ConfirmPromptOptions {
   message: string;
@@ -23,8 +24,6 @@ export interface ConfirmPromptOptions {
   clearOnExit?: boolean;
 }
 
-const S_RADIO_ACTIVE = promptSymbols.radioActive;
-const S_RADIO_INACTIVE = promptSymbols.radioInactive;
 const S_BAR = promptSymbols.bar;
 
 const confirmCancelSymbol = Symbol('confirm-cancel');
@@ -44,10 +43,10 @@ export const confirmPrompt = async (options: ConfirmPromptOptions): Promise<bool
       const hint = formatShortcutHint(
         '↑↓ move · enter/→ confirm · esc/← back · alt+h main menu · ctrl+c exit',
       );
-      const yesCursor = value ? pc.cyan('❯') : ' ';
-      const yesRadio = value ? S_RADIO_ACTIVE : S_RADIO_INACTIVE;
-      const noCursor = value ? ' ' : pc.cyan('❯');
-      const noRadio = value ? S_RADIO_INACTIVE : S_RADIO_ACTIVE;
+      const yesCursor = value ? colorize('primary', '❯') : ' ';
+      const yesRadio = value ? promptSymbols.radioActive : promptSymbols.radioInactive;
+      const noCursor = value ? ' ' : colorize('primary', '❯');
+      const noRadio = value ? promptSymbols.radioInactive : promptSymbols.radioActive;
       const lines = [
         `${icon}  ${pc.bold(message)}`,
         ...renderPromptDetails(details),
@@ -92,7 +91,7 @@ export const confirmPrompt = async (options: ConfirmPromptOptions): Promise<bool
       }
     };
 
-    promptInput().on('keypress', keypressHandler);
+    promptKeyInput().on('keypress', keypressHandler);
     redrawScreen();
   });
 };

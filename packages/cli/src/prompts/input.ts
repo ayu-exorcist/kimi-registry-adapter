@@ -2,6 +2,7 @@ import type * as readline from 'node:readline';
 
 import pc from 'picocolors';
 
+import { colorize } from '../theme';
 import {
   createPromptReadline,
   createPromptSession,
@@ -16,7 +17,7 @@ import {
 } from './prompt-core';
 import { FrameRenderer, terminalContentWidth, wrapPlainText } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { promptInput } from './terminal-session';
+import { promptKeyInput } from './terminal-session';
 
 export interface InputPromptOptions {
   message: string;
@@ -97,7 +98,7 @@ export const inputPrompt = async (options: InputPromptOptions): Promise<string |
         ...hintLines,
         `${S_BAR}`,
         ...valueLines.map((line) => `${promptLinePrefix()}${line}`),
-        ...(error ? [`${S_BAR}  ${pc.red(error)}`] : []),
+        ...(error ? [`${S_BAR}  ${colorize('error', error)}`] : []),
         pc.dim('╰'),
       ];
       frame.render(lines);
@@ -202,7 +203,7 @@ export const inputPrompt = async (options: InputPromptOptions): Promise<string |
       }
     };
 
-    promptInput().on('keypress', keypressHandler);
+    promptKeyInput().on('keypress', keypressHandler);
     redrawScreen();
   });
 };

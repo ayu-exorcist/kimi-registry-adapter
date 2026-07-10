@@ -2,6 +2,7 @@ import * as readline from 'node:readline';
 
 import pc from 'picocolors';
 
+import { colorize, subscribeColorPalette } from '../theme';
 import { interactiveHomeSymbol, isHomeKey } from './navigation';
 import {
   clearTerminalScreen,
@@ -19,12 +20,22 @@ import {
 } from './terminal-session';
 
 export const promptSymbols = {
-  stepActive: pc.green('◆'),
-  stepCancel: pc.red('■'),
-  stepSubmit: pc.green('◇'),
-  radioActive: pc.green('●'),
+  get stepActive(): string {
+    return colorize('primary', '◆');
+  },
+  get stepCancel(): string {
+    return colorize('error', '■');
+  },
+  get stepSubmit(): string {
+    return colorize('success', '◇');
+  },
+  get radioActive(): string {
+    return colorize('primary', '●');
+  },
   radioInactive: pc.dim('○'),
-  checkboxActive: pc.green('■'),
+  get checkboxActive(): string {
+    return colorize('primary', '■');
+  },
   checkboxInactive: pc.dim('□'),
   bar: pc.dim('│'),
 };
@@ -47,7 +58,7 @@ export const promptLinePrefix = (): string => `${promptSymbols.bar}  `;
 
 const renderPromptDetail = (detail: PromptDetail): string => {
   if (detail.tone === 'danger') {
-    return pc.red(detail.text);
+    return colorize('error', detail.text);
   }
 
   if (detail.tone === 'current') {
@@ -117,11 +128,16 @@ export const createPromptLifecycle = (options: {
     options.render,
   );
   const resizeSubscription = subscribeTerminalResize(resizeHandler);
-  const cleanup = createPromptCleanup({
+  const cleanupPrompt = createPromptCleanup({
     readlineInterface: options.readlineInterface,
     keypressHandler: options.keypressHandler,
     resizeSubscription,
   });
+  const unsubscribeTheme = subscribeColorPalette(redrawScreen);
+  const cleanup = (): void => {
+    unsubscribeTheme();
+    cleanupPrompt();
+  };
   return { clearRender, redrawScreen, cleanup };
 };
 

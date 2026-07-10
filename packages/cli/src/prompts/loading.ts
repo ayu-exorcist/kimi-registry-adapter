@@ -1,12 +1,11 @@
 import * as readline from 'node:readline';
 
-import pc from 'picocolors';
-
+import { colorize } from '../theme';
 import { clearTerminalScreen, renderAppHeader } from './screen';
 import {
   createPromptCleanup,
   preparePromptInput,
-  promptInput,
+  promptKeyInput,
   promptOutput,
 } from './terminal-session';
 
@@ -38,12 +37,14 @@ export const withLoadingIndicator = async <T>(
 
     didWarnAboutInterrupt = true;
     if (didRender) {
-      promptOutput().write(`\r\u001B[2K${pc.yellow('Busy, finishing current operation...')}\n`);
+      promptOutput().write(
+        `\r\u001B[2K${colorize('warning', 'Busy, finishing current operation...')}\n`,
+      );
       render();
       return;
     }
 
-    promptOutput().write(`${pc.yellow('Busy, finishing current operation...')}\n`);
+    promptOutput().write(`${colorize('warning', 'Busy, finishing current operation...')}\n`);
   };
 
   preparePromptInput();
@@ -60,7 +61,7 @@ export const withLoadingIndicator = async <T>(
   clearTerminalScreen();
   renderAppHeader();
 
-  promptInput().on('keypress', keypressHandler);
+  promptKeyInput().on('keypress', keypressHandler);
   const cleanup = createPromptCleanup({ keypressHandler: () => keypressHandler });
 
   const delayTimer = setTimeout(() => {

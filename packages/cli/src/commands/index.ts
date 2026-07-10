@@ -8,6 +8,7 @@ import pc from 'picocolors';
 import { isInteractiveHome } from '../prompts/navigation';
 import { formatShortcutHint } from '../prompts/shortcut-hints';
 import { disposePromptReadline } from '../prompts/terminal-session';
+import { initializeInteractiveTheme } from '../theme';
 import { normalizeVariadicPatternOptions } from './args';
 import { createCommandModeSubcommands } from './command-mode';
 import {
@@ -140,10 +141,15 @@ const runInteractiveSetup = async (options: {
   host: string;
   port: string;
 }): Promise<void> => {
+  let disposeThemeTracking: (() => void) | undefined;
   try {
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      disposeThemeTracking = await initializeInteractiveTheme();
+    }
     await runInteractiveMenu(options);
   } finally {
     disposePromptReadline();
+    disposeThemeTracking?.();
   }
 };
 

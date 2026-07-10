@@ -1,7 +1,17 @@
 import * as readline from 'node:readline';
-import { Writable } from 'node:stream';
+import { PassThrough, Writable } from 'node:stream';
 
 import { logDebug } from '@kastral/kra-core';
+
+import {
+  DISABLE_TERMINAL_THEME_REPORTING,
+  ENABLE_TERMINAL_THEME_REPORTING,
+  OSC11_QUERY,
+  QUERY_TERMINAL_THEME,
+  createTerminalThemeInputState,
+  handleTerminalThemeInput,
+  type ResolvedTheme,
+} from '../theme/terminal-theme';
 
 export interface PromptLifecycleOptions {
   readlineInterface?: readline.Interface;
@@ -46,6 +56,13 @@ let promptRuntime: PromptRuntime = {
   exit: (code = 0) => process.exit(code),
 };
 
+type PromptInputRouter = {
+  keyInput: PassThrough;
+  handleData: (chunk: Buffer | string) => void;
+};
+
+let promptInputRouter: PromptInputRouter | undefined;
+
 export const setPromptRuntime = (runtime: Partial<PromptRuntime>): (() => void) => {
   const previous = promptRuntime;
   promptRuntime = { ...promptRuntime, ...runtime };
@@ -55,6 +72,10 @@ export const setPromptRuntime = (runtime: Partial<PromptRuntime>): (() => void) 
 };
 
 export const promptInput = (): typeof process.stdin => promptRuntime.input;
+
+/** Input after terminal-control reports have been removed, when tracking is active. */
+export const promptKeyInput = (): typeof process.stdin =>
+  (promptInputRouter?.keyInput ?? promptRuntime.input) as typeof process.stdin;
 
 export const promptOutput = (): typeof process.stdout => promptRuntime.output;
 
@@ -67,7 +88,7 @@ const silentOutput = new Writable({
 export const sharedPromptReadline = (): readline.Interface => {
   const state = promptReadlineState();
   if (!state.readlineInterface) {
-    const input = promptInput();
+    const input = promptKeyInput();
     input.setMaxListeners(Math.max(input.getMaxListeners(), 50));
     state.readlineInterface = readline.createInterface({
       input,
@@ -103,7 +124,7 @@ const inputSnapshot = (): Record<string, unknown> => {
     isTTY: input.isTTY,
     isPaused: typeof input.isPaused === 'function' ? input.isPaused() : undefined,
     isRaw: input.isRaw,
-    keypressListeners: input.listenerCount('keypress'),
+    keypressListeners: promptKeyInput().listenerCount('keypress'),
     rawModeLeaseCount,
   };
 };
@@ -147,19 +168,70 @@ export const preparePromptInput = (
   readlineInterface: readline.Interface = sharedPromptReadline(),
 ): void => {
   installRawDataObserver();
+  const input = promptInput();
+  const keyInput = promptKeyInput();
   logDebug('prompt.terminal', 'prepare.before', inputSnapshot());
   acquireRawMode();
   const state = promptReadlineState();
   if (!state.keypressEventsPrepared) {
-    readline.emitKeypressEvents(promptInput(), readlineInterface);
+    readline.emitKeypressEvents(keyInput, readlineInterface);
     state.keypressEventsPrepared = true;
     logDebug('prompt.terminal', 'keypress.prepare');
   }
-  promptInput().resume();
+  input.resume();
+  keyInput.resume();
   logDebug('prompt.terminal', 'prepare.after', inputSnapshot());
   process.nextTick(() => {
     logDebug('prompt.terminal', 'prepare.nextTick', inputSnapshot());
   });
+};
+
+export const installTerminalThemeTracking = (
+  onTheme: (theme: ResolvedTheme) => void,
+): (() => void) => {
+  const input = promptInput();
+  const output = promptOutput();
+  if (!input.isTTY || !output.isTTY || promptInputRouter !== undefined) {
+    return (): void => {};
+  }
+
+  const keyInput = new PassThrough();
+  const inputState = createTerminalThemeInputState();
+  const handleData = (chunk: Buffer | string): void => {
+    const data = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
+    const result = handleTerminalThemeInput(data, output, onTheme, inputState);
+    if (result === undefined) {
+      keyInput.write(data);
+      return;
+    }
+    if (result.data !== undefined) {
+      keyInput.write(result.data);
+    }
+  };
+  const router: PromptInputRouter = { keyInput, handleData };
+  promptInputRouter = router;
+  input.on('data', handleData);
+  input.resume();
+
+  try {
+    output.write(ENABLE_TERMINAL_THEME_REPORTING);
+    output.write(OSC11_QUERY);
+    output.write(QUERY_TERMINAL_THEME);
+  } catch {
+    // Theme tracking is visual enhancement only; forwarding keyboard input remains safe.
+  }
+
+  return (): void => {
+    if (promptInputRouter !== router) return;
+    input.removeListener('data', handleData);
+    promptInputRouter = undefined;
+    keyInput.end();
+    try {
+      output.write(DISABLE_TERMINAL_THEME_REPORTING);
+    } catch {
+      // Best effort only, matching the query path above.
+    }
+  };
 };
 
 export const subscribeTerminalResize = (
@@ -202,7 +274,7 @@ export const createPromptCleanup = (options: PromptLifecycleOptions): (() => voi
     cleanedUp = true;
 
     logDebug('prompt.terminal', 'cleanup.before', inputSnapshot());
-    promptInput().removeListener('keypress', options.keypressHandler());
+    promptKeyInput().removeListener('keypress', options.keypressHandler());
     options.resizeSubscription?.();
     const resizeHandler = options.resizeHandler?.();
     if (resizeHandler) {

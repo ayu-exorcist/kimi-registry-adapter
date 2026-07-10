@@ -10,7 +10,12 @@ import {
 
 import { interactiveHomeSymbol, isHomeKey } from '../prompts/navigation';
 import { createPromptReadline } from '../prompts/prompt-core';
-import { createPromptCleanup, exitPrompt, promptInput } from '../prompts/terminal-session';
+import {
+  createPromptCleanup,
+  exitPrompt,
+  promptInput,
+  promptKeyInput,
+} from '../prompts/terminal-session';
 import type { UpdateHealthSnapshot } from '../server';
 
 export type RegistryServer = {
@@ -135,8 +140,8 @@ export const waitForServerClose = async (server: RegistryServer): Promise<Server
     process.once('SIGTERM', stopServerFromSignal);
     if (promptInput().isTTY) {
       const readlineInterface = createPromptReadline();
-      promptInput().resume();
-      promptInput().on('keypress', keypressHandler);
+      promptKeyInput().resume();
+      promptKeyInput().on('keypress', keypressHandler);
       promptCleanup = createPromptCleanup({
         readlineInterface,
         keypressHandler: () => keypressHandler,

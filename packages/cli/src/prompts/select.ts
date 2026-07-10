@@ -3,6 +3,7 @@ import { stripVTControlCharacters } from 'node:util';
 
 import pc from 'picocolors';
 
+import { colorize } from '../theme';
 import {
   createPromptFinisher,
   createPromptLifecycle,
@@ -19,7 +20,7 @@ import {
 } from './prompt-core';
 import { FrameRenderer, terminalContentWidth } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { promptInput } from './terminal-session';
+import { promptKeyInput } from './terminal-session';
 
 interface SelectItem<T> {
   value: T;
@@ -39,8 +40,6 @@ export interface SelectPromptOptions<T> {
   clearOnExit?: boolean;
 }
 
-const S_RADIO_ACTIVE = promptSymbols.radioActive;
-const S_RADIO_INACTIVE = promptSymbols.radioInactive;
 const S_BAR = promptSymbols.bar;
 
 const selectCancelSymbol = Symbol('select-cancel');
@@ -118,10 +117,10 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
           if (!item) continue;
           const actualIndex = visibleStart + i;
           const isCursor = actualIndex === cursor;
-          const radio = isCursor ? S_RADIO_ACTIVE : S_RADIO_INACTIVE;
+          const radio = isCursor ? promptSymbols.radioActive : promptSymbols.radioInactive;
           const label = isCursor ? pc.underline(item.label) : item.label;
           const hint = item.hint ? pc.dim(` (${item.hint})`) : '';
-          const prefix = isCursor ? pc.green('❯') : ' ';
+          const prefix = isCursor ? colorize('primary', '❯') : ' ';
           pushWrappedLine(`${S_BAR} ${prefix} ${radio} ${label}${hint}`);
         }
 
@@ -188,7 +187,7 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
       }
     };
 
-    promptInput().on('keypress', keypressHandler);
+    promptKeyInput().on('keypress', keypressHandler);
     redrawScreen();
   });
 };

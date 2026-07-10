@@ -3,12 +3,13 @@ import { stripVTControlCharacters } from 'node:util';
 
 import pc from 'picocolors';
 
+import { subscribeColorPalette } from '../theme';
 import { interactiveHomeSymbol, isHomeKey } from './navigation';
 import {
   createPromptCleanup,
   exitPrompt,
   preparePromptInput,
-  promptInput,
+  promptKeyInput,
   promptOutput,
   subscribeTerminalResize,
 } from './terminal-session';
@@ -172,10 +173,17 @@ export const waitForScreenExit = async (
 
     const resizeSubscription = subscribeTerminalResize(resizeHandler);
 
-    const cleanup = createPromptCleanup({
+    const cleanupPrompt = createPromptCleanup({
       keypressHandler: () => keypressHandler,
       resizeSubscription,
     });
+    const unsubscribeTheme = subscribeColorPalette(() => {
+      onResize?.();
+    });
+    const cleanup = (): void => {
+      unsubscribeTheme();
+      cleanupPrompt();
+    };
 
     const keypressHandler = (_char: string, key: readline.Key): void => {
       if (!key) {
@@ -205,7 +213,7 @@ export const waitForScreenExit = async (
     };
 
     preparePromptInput();
-    promptInput().resume();
-    promptInput().on('keypress', keypressHandler);
+    promptKeyInput().resume();
+    promptKeyInput().on('keypress', keypressHandler);
   });
 };

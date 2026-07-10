@@ -4,6 +4,7 @@ import type { interactiveHomeSymbol } from '../prompts/navigation';
 import { clearTerminalScreen, FrameRenderer, waitForScreenExit } from '../prompts/screen';
 import { subscribeTerminalResize } from '../prompts/terminal-session';
 import { listAvailableRegistries } from '../server/registry-listing';
+import { subscribeColorPalette } from '../theme';
 import { formatRegistryListing, formatResultMessage, getResultScreenLines } from './result-format';
 import { importUrl as buildImportUrl } from './serve-command';
 
@@ -70,7 +71,9 @@ const showPersistentNote = (
 
   redrawScreen();
   const unsubscribeResize = subscribeTerminalResize(resizeHandler, { poll: true });
+  const unsubscribeTheme = subscribeColorPalette(redrawScreen);
   return () => {
+    unsubscribeTheme();
     unsubscribeResize();
   };
 };

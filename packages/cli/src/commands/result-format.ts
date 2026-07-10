@@ -4,6 +4,7 @@ import pc from 'picocolors';
 
 import { wrapPlainText } from '../prompts/screen';
 import { formatShortcutHint } from '../prompts/shortcut-hints';
+import { colorize } from '../theme';
 
 const RESULT_LABEL_WIDTH = 18;
 const RESULT_BOX_SIDE_WIDTH = 4;
@@ -158,7 +159,7 @@ export const renderResultBox = (title: string, lines: string[]): string[] => {
     Math.max(...wrappedLines.map((line) => visibleWidth(line)), 0),
   );
   const paddedLines = ['', ...wrappedLines, ''];
-  const titleIcon = `${pc.green('◇')}  `;
+  const titleIcon = `${colorize('success', '◇')}  `;
   const titleWidth = Math.max(1, maxContentWidth + 1 - visibleWidth(titleIcon));
   const titleLabel =
     title.length <= titleWidth

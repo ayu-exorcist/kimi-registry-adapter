@@ -3,3 +3,6 @@ packages:
 allowBuilds:
   esbuild: true
   simple-git-hooks: true
+peerDependencyRules:
+  allowedVersions:
+    typescript@tsdown: '7'

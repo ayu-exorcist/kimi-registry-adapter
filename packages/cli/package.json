@@ -51,7 +51,7 @@
     "@rabbx/watcher": "^1.2.0",
     "@xstate/fsm": "^2.1.0",
     "citty": "^0.2.2",
-    "hono": "^4.12.27",
+    "hono": "^4.12.28",
     "picocolors": "^1.1.1"
   },
   "engines": {

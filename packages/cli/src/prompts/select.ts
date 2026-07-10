@@ -34,6 +34,8 @@ export interface SelectPromptOptions<T> {
   initialValue?: T;
   maxVisible?: number;
   cancelHint?: string;
+  cancelOnEscape?: boolean;
+  cancelOnLeft?: boolean;
   clearOnExit?: boolean;
 }
 
@@ -77,6 +79,8 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
     initialValue,
     maxVisible = 8,
     cancelHint = 'esc/← back · alt+h main menu · ctrl+c exit',
+    cancelOnEscape = true,
+    cancelOnLeft = true,
     clearOnExit = true,
   } = options;
 
@@ -165,7 +169,14 @@ export const selectPrompt = async <T>(options: SelectPromptOptions<T>): Promise<
 
     const keypressHandler = (_char: string, key: readline.Key): void => {
       if (!key) return;
-      if (handleCommonPromptKey(key, { submit, cancel, goHome, cleanup })) return;
+      if (
+        handleCommonPromptKey(
+          key,
+          { submit, cancel, goHome, cleanup },
+          { cancelOnEscape, cancelOnLeft },
+        )
+      )
+        return;
       if (key.name === 'up') {
         cursor = cursor === 0 ? items.length - 1 : cursor - 1;
         render();

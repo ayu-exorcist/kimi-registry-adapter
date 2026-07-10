@@ -235,9 +235,13 @@ export type CommonPromptKeyHandlers = {
 export const handleCommonPromptKey = (
   key: readline.Key,
   handlers: CommonPromptKeyHandlers,
-  options: { submitOnRight?: boolean; cancelOnLeft?: boolean } = {},
+  options: {
+    submitOnRight?: boolean;
+    cancelOnEscape?: boolean;
+    cancelOnLeft?: boolean;
+  } = {},
 ): boolean => {
-  const { submitOnRight = true, cancelOnLeft = true } = options;
+  const { submitOnRight = true, cancelOnEscape = true, cancelOnLeft = true } = options;
 
   if (isHomeKey(key)) {
     handlers.goHome();
@@ -251,7 +255,7 @@ export const handleCommonPromptKey = (
     handlers.cleanup();
     exitPrompt();
   }
-  if (key.name === 'escape' || (cancelOnLeft && key.name === 'left')) {
+  if ((cancelOnEscape && key.name === 'escape') || (cancelOnLeft && key.name === 'left')) {
     handlers.cancel();
     return true;
   }

@@ -68,6 +68,13 @@ describe('interactive menu exit', () => {
 
     await expect(runCli([])).resolves.toBeUndefined();
 
+    expect(mocks.selectPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Main menu',
+        cancelOnEscape: false,
+        cancelOnLeft: false,
+      }),
+    );
     expect(mocks.printOutro).toHaveBeenCalledWith('Bye!');
     expect(mocks.disposePromptReadline).toHaveBeenCalledTimes(1);
   });

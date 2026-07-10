@@ -78,7 +78,9 @@ const runInteractiveMenu = async (options: {
       message: 'Main menu',
       options: getInteractiveMenuOptions(providerIds),
       initialValue: selectedMainAction,
-      cancelHint: formatShortcutHint('esc/←/ctrl+c exit'),
+      cancelHint: formatShortcutHint('ctrl+c exit'),
+      cancelOnEscape: false,
+      cancelOnLeft: false,
     });
     if (isInteractiveHome(rawAction)) {
       continue;

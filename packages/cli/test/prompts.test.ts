@@ -90,6 +90,29 @@ describe('prompt interactions', () => {
     await expect(resultPromise).resolves.toBe('bravo');
   });
 
+  it('ignores escape and left when select cancellation is disabled', async () => {
+    let settled = false;
+    const resultPromise = selectPrompt({
+      message: 'Main menu',
+      options: [{ value: 'add', label: 'Add provider' }],
+      cancelOnEscape: false,
+      cancelOnLeft: false,
+      clearOnExit: false,
+    }).then((value) => {
+      settled = true;
+      return value;
+    });
+    await nextTick();
+
+    emitKey('', { name: 'escape' });
+    emitKey('', { name: 'left' });
+    await nextTick();
+    expect(settled).toBe(false);
+
+    emitKey('', { name: 'return' });
+    await expect(resultPromise).resolves.toBe('add');
+  });
+
   it('keeps input active after validation errors and resolves after corrected text', async () => {
     let settled = false;
     const resultPromise = inputPrompt({

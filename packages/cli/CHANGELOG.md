@@ -1,5 +1,17 @@
 # @kastral/kra
 
+## 0.2.0
+
+### Minor Changes
+
+- [`104099d`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/104099d0b8b2156ac6b39ff2dbd736fdc1c331bf) - Make the interactive CLI follow Kimi Code palettes, including custom themes and dynamic terminal light/dark updates.
+
+### Patch Changes
+
+- [`5000014`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/50000141145fdfa98a586475c82a1ea4ec38ad54) - Keep the interactive main menu open when Escape or the left arrow is pressed, so only Ctrl+C exits from the main menu.
+
+- [`d0e6a34`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/d0e6a340a7b91ee64780dd1838fd09ef81165e13) - Simplify interactive provider removal to always delete local registry files, and document command-mode removal of local-only registries.
+
 ## 0.1.5
 
 ### Patch Changes

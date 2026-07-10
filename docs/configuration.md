@@ -30,8 +30,10 @@ Configuration is split by concern:
 | Provider definition   | `config.json.providers[providerId]`          | Upstream API, model source, filters, metadata, defaults. |
 | Auth storage          | `auth.json.providers[providerId]`            | Optional local API key or env-var name.                  |
 | Editable registry     | `registries/<providerId>/api.json`           | Registry imported by Kimi and safe for manual edits.     |
-| Generated baseline    | `.internal/state.json.lastGeneratedRegistry` | Three-way merge baseline for later updates.              |
+| Generated baseline    | `.internal/state.json.lastGeneratedRegistry` | Primary three-way merge baseline for later updates.      |
 | Source model snapshot | `.internal/models.json`                      | Last discovered raw models as `{ "data": [...] }`.       |
+
+If the internal generated baseline is unavailable, update recovery falls back to the git-committed editable registry and then to the newly generated registry.
 
 The transformation pipeline is:
 

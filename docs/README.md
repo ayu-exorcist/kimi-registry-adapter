@@ -6,35 +6,41 @@ This document is the documentation inventory and review record for Kimi Registry
 
 ### Module × Document Type Matrix
 
-| Module                            | User guide                                                 | Developer / architecture                            | Operations / release     | Testing / verification | Package / generated reference   | Processing class  |
-| --------------------------------- | ---------------------------------------------------------- | --------------------------------------------------- | ------------------------ | ---------------------- | ------------------------------- | ----------------- |
-| Product overview                  | `README.md`, `README.zh-CN.md`                             | `docs/architecture.md`                              | `docs/release.md`        | `docs/testing.md`      | n/a                             | Update            |
-| CLI package and command mode      | `packages/cli/README.md`, `packages/cli/README.zh-CN.md`   | `docs/architecture.md`, `docs/cli-and-server.md`    | `docs/cli-and-server.md` | CLI tests              | `packages/cli/package.json`     | New + update      |
-| HTTP registry server              | Root/CLI READMEs                                           | `docs/architecture.md`, `docs/cli-and-server.md`    | `docs/cli-and-server.md` | CLI server tests       | n/a                             | New + update      |
-| Core package                      | `packages/core/README.md`, `packages/core/README.zh-CN.md` | `docs/state-and-update.md`, `docs/configuration.md` | n/a                      | Core tests             | `packages/core/package.json`    | New + update      |
-| Configuration and registry schema | Root/package READMEs                                       | `docs/configuration.md`, `docs/state-and-update.md` | n/a                      | Schema/config tests    | `schemas/config.schema.json`    | New + preserve    |
-| State directory and update engine | Covered in root and package READMEs                        | `docs/state-and-update.md`                          | n/a                      | Core tests             | State files under `registries/` | Preserve + update |
-| Release and npm publishing        | Root README, `.changeset/README.md`                        | n/a                                                 | `docs/release.md`        | `docs/testing.md`      | `.github/workflows/release.yml` | Update            |
+| Module                            | Getting started / user guide                               | Architecture / reference                    | Operations / release                           | Testing / governance                         | Package / generated reference                            | Processing class  |
+| --------------------------------- | ---------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------- | -------------------------------------------- | -------------------------------------------------------- | ----------------- |
+| Product and workspace             | `README.md`, `README.zh-CN.md`                             | `docs/architecture.md`                      | n/a                                            | `docs/typescript-coding-standards.md`        | root `package.json`, `mise.toml`                         | Update            |
+| CLI and interactive prompts       | `packages/cli/README.md`, `packages/cli/README.zh-CN.md`   | `docs/cli-and-server.md`                    | diagnostics section in `docs/operations.md`    | CLI and prompt coverage in `docs/testing.md` | `packages/cli/package.json`, `packages/cli/CHANGELOG.md` | Update + preserve |
+| HTTP server and diagnostics       | CLI/root README summaries                                  | server contract in `docs/cli-and-server.md` | `docs/operations.md`                           | server/logger coverage in `docs/testing.md`  | runtime health JSON                                      | New + update      |
+| Core domain engine                | `packages/core/README.md`, `packages/core/README.zh-CN.md` | public operations in package READMEs        | persistence recovery in `docs/operations.md`   | core coverage in `docs/testing.md`           | `packages/core/package.json`                             | Update            |
+| Configuration and registry schema | configuration highlights in root/package READMEs           | `docs/configuration.md`                     | auth/security boundary in `docs/operations.md` | schema checks in `docs/testing.md`           | `schemas/config.schema.json`                             | Update + preserve |
+| State and update engine           | state summaries in root/package READMEs                    | `docs/state-and-update.md`                  | recovery playbooks in `docs/operations.md`     | state/update tests in `docs/testing.md`      | files under `registries/`                                | Update            |
+| Release and publishing            | release summary in root README                             | `.changeset/README.md`                      | `docs/release.md`                              | release gates in `docs/testing.md`           | workflows, Changesets config, changelog                  | Update + preserve |
+| Documentation governance          | `docs/README.md`                                           | cross-document terms and review record      | n/a                                            | review checklist below                       | `LICENSE`                                                | Update + preserve |
 
 ### New-Class Documents
 
-- `docs/cli-and-server.md` describes the published CLI boundary, interactive mode, command-mode flags, server scheduling, and HTTP endpoints.
-- `docs/configuration.md` describes `config.json`, provider fields, model sources, auth precedence, metadata, filters, overrides, and editable registry shape.
+- `docs/operations.md` fills the missing operator view: startup ordering, supervision, health semantics, diagnostics, security boundaries, graceful shutdown, and recovery playbooks. It separates serving health from update health and calls out the raw-input risk of `KRA_LOG=1`.
 
 ### Update-Class Documents
 
-- `README.md` and `README.zh-CN.md`: keep usage modes, state layout, config highlights, docs links, development checks, and publishing summary aligned with current code.
-- `packages/cli/README.md` and `packages/cli/README.zh-CN.md`: keep command examples aligned with registered commands: default interactive mode plus `add`, `list`, `auth`, `update`, `remove`, and `serve`.
-- `packages/core/README.md` and `packages/core/README.zh-CN.md`: keep operation descriptions, config model, state/update behavior, and exported surface aligned with `packages/core/src/index.ts` and `operations`.
-- `docs/architecture.md`, `docs/state-and-update.md`, `docs/release.md`, and `docs/testing.md`: preserve the existing structure while adding cross-links or correcting stale behavior descriptions when code changes.
-- `.changeset/README.md`: keep release language aligned with root scripts, Changesets config, and the release workflow.
+- `README.md` and `README.zh-CN.md`: correct merge-baseline fallback behavior and link the new operations reference.
+- `packages/cli/README.md` and `packages/cli/README.zh-CN.md`: add the supported diagnostics controls, log-location caveat, and operations link.
+- `packages/core/README.md` and `packages/core/README.zh-CN.md`: align the documented export surface with the current diagnostics exports and add the operations boundary.
+- `docs/architecture.md`: add diagnostics to the runtime boundary and failure model.
+- `docs/cli-and-server.md`: document exact health semantics, diagnostics handoff, and the complete important `add` option set.
+- `docs/configuration.md`: distinguish the primary generated baseline from its recovery fallbacks.
+- `docs/state-and-update.md`: document provider-level three-way merge behavior and baseline fallback order.
+- `docs/release.md`: make the package manifest the current-version authority and remove the obsolete first-publish bootstrap path.
+- `docs/testing.md`: include diagnostics coverage and the colocated core diagnostics test.
+- `docs/typescript-coding-standards.md`: include the enabled `noPropertyAccessFromIndexSignature` compiler rule.
+- `docs/README.md`: replace the stale inventory and review record with this current MECE audit.
 
 ### Preserve-Class Documents And Artifacts
 
-- `schemas/config.schema.json` remains a generated artifact. Regenerate with `pnpm config-schema:generate`; do not hand-edit.
-- `LICENSE` remains the license source.
-- Package manifests remain package metadata references, not narrative docs.
-- Existing detailed docs keep their role unless the code moves their module boundary.
+- `.changeset/README.md` remains the contributor release workflow; it matches the current scripts and GitHub action.
+- `packages/cli/CHANGELOG.md` remains generated release history; historical version numbers belong there rather than in main-branch narrative docs.
+- `schemas/config.schema.json` remains generated. Regenerate with `pnpm config-schema:generate`; do not hand-edit.
+- `LICENSE`, package manifests, workflow files, and Changesets config remain source artifacts rather than narrative docs.
 
 ## Cross-Document Terms
 
@@ -50,12 +56,18 @@ Use these names consistently:
 - `update mode` for `merge` or `overwrite` registry write behavior.
 - `provider type` for `openai_responses`, `openai`, or `anthropic`.
 
+## Version Reference Policy
+
+Main-branch narrative docs do not duplicate the current `@kastral/kra` package version. `packages/cli/package.json` is the current-version authority; `packages/cli/CHANGELOG.md` and git tags own historical versions. Runtime compatibility constraints such as the minimum Node.js version, protocol versions, and versioned external APIs remain in docs because they describe behavioral requirements rather than the repository's current release number.
+
 ## Cross-Document Review Checklist
 
 - New developer view: start at the root README, then read `docs/architecture.md`, `docs/configuration.md`, `docs/state-and-update.md`, and `docs/testing.md` before editing code.
-- Operations view: read server-mode notes in the root/CLI READMEs, then `docs/cli-and-server.md`, `docs/release.md`, and `docs/testing.md` for runtime and release gates.
+- Operations view: read server-mode notes in the root/CLI READMEs, then `docs/operations.md`, `docs/cli-and-server.md`, and `docs/release.md` for runtime, recovery, and release gates.
 - Test view: map changes to `docs/testing.md`, then use the package README and architecture/configuration docs to choose the right seam.
 
 ## Review Notes
 
-Objective facts in the detailed docs were traced to the current source files in `packages/cli/src`, `packages/core/src`, package manifests, tests, scripts, and GitHub workflows. Assumptions are explicitly labeled inside the detailed docs. The main corrections made during review were replacing stale `setup`, `init`, `validate`, and `print-url` user-facing command references with the commands currently registered by the CLI; documenting that standalone `validateRegistry` and `printUrl` are core operations, not registered CLI commands; splitting CLI/server and configuration details into dedicated references; correcting operation return-value descriptions; aligning release wording with the actual root scripts; updating the published package version to `0.1.1`; documenting the CI built-binary smoke test; and keeping core package build/test commands aligned with available package scripts.
+Objective facts in the detailed docs were traced to current source under `packages/cli/src` and `packages/core/src`, manifests, tests, scripts, generated schema, Changesets config, and GitHub workflows. Assumptions are explicitly labeled in the detailed design and operations docs.
+
+The adversarial review corrected these code/document mismatches: current package version authority now points to the manifest instead of a duplicated literal; normal release flow replaces the obsolete first-publish bootstrap; provider-level fields participate in three-way merge; the committed registry is only a fallback when internal generated state is unavailable; top-level serving health remains independent from nested update health; `/healthz` requires JSON inspection despite HTTP `200`; and diagnostics flags, level, path, retention, and the secret-capture risk specific to interactive `KRA_LOG=1` are now documented. No standalone `validate` or `print-url` CLI command was introduced; those remain core operations.

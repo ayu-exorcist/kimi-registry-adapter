@@ -81,6 +81,7 @@ The `operations` module provides higher-level functions used by the CLI:
 - selected model-source helpers such as `fetchProviderModels`, `readModelsPayload`, `readModelsMetadata`, and `resolveModelsUrl`
 - registry schema validators and registry types
 - transform helpers and metadata match types
+- diagnostics helpers plus structured logger functions such as `diagnosticsLogFile`, `createOperationLogger`, and `logDebug`/`logInfo`/`logWarn`/`logError`
 - `KraConfig` and `ProviderConfig` types
 
 Modules such as `state`, `lock`, `git`, and `editable-registry-store` are implementation modules inside the workspace, not the package's documented public surface.
@@ -90,6 +91,8 @@ For the full configuration reference, see [Configuration And Registry Reference]
 For the full state and update design, see [State And Update Design](../../docs/state-and-update.md).
 
 For the CLI/server boundary, see [CLI And Server Reference](../../docs/cli-and-server.md).
+
+For health checks, diagnostics, supervision, and recovery, see [Operations And Troubleshooting](../../docs/operations.md).
 
 For test coverage, generated-schema checks, and verification commands, see [Testing And Verification](../../docs/testing.md).
 
@@ -109,6 +112,7 @@ From the repository root, `pnpm check` runs linting, typechecking, and tests for
 - [CLI and server reference](../../docs/cli-and-server.md)
 - [Configuration and registry reference](../../docs/configuration.md)
 - [State and update design](../../docs/state-and-update.md)
+- [Operations and troubleshooting](../../docs/operations.md)
 - [Release and publishing](../../docs/release.md)
 
 ## License

@@ -14,22 +14,18 @@ Objective facts:
 
 Implicit assumptions:
 
-- The npm account used for the first publish owns or can publish to the `@kastral` scope.
+- The npm account and Trusted Publisher configuration allow publication to the `@kastral` scope.
 - The GitHub repository path for Trusted Publishing is `ayu-exorcist/kimi-registry-adapter`.
-- Trusted Publishing can only be configured on npm after the package page exists, so an unpublished package needs one initial manual publish.
 
 ## Middle-Layer Logic
 
-Release flow has two paths:
-
-1. First publish bootstrap: publish the current `@kastral/kra` version locally with provenance disabled so npm creates the package page.
-2. Normal releases: add Changesets, merge them to `main`, let the GitHub workflow create a release PR, merge the release PR, then let the workflow publish through Trusted Publishing.
+The normal release flow is: add Changesets, merge them to `main`, let the GitHub workflow create a release PR, merge the release PR, then let the workflow publish through Trusted Publishing.
 
 ## Bottom-Layer Details
 
-### Package Versions
+### Version Authority
 
-Only `packages/cli/package.json` carries the publishable package version. The current `@kastral/kra` version is `0.1.1`.
+Only `packages/cli/package.json` carries the current publishable package version. Read the version from that manifest rather than copying it into main-branch narrative docs. Historical versions belong in `packages/cli/CHANGELOG.md` and git tags.
 
 The root `package.json` and `packages/core/package.json` are private workspace manifests and are not published independently.
 
@@ -46,31 +42,6 @@ Use bump levels this way:
 - `patch`: bug fixes and small behavior changes.
 - `minor`: backward-compatible features.
 - `major`: breaking changes.
-
-### First Manual Publish
-
-Use this path only while `@kastral/kra` has never been published:
-
-```sh
-pnpm install
-pnpm check
-pnpm build
-npm login
-cd packages/cli
-npm publish --access public --provenance=false
-```
-
-`--provenance=false` is intentional for the first local publish because provenance is intended for the GitHub Actions OIDC workflow.
-
-After this succeeds, configure Trusted Publishing on npm for `@kastral/kra`:
-
-```text
-Publisher type: GitHub Actions
-GitHub organization/user: ayu-exorcist
-Repository: kimi-registry-adapter
-Workflow filename: release.yml
-Environment: leave empty
-```
 
 ### Normal CI Release
 
@@ -134,7 +105,8 @@ It runs checks, builds packages, verifies the generated config schema, and print
 This document was checked against:
 
 - `package.json` for release scripts, schema scripts, and `@changesets/cli`.
-- `packages/cli/package.json` for `bin`, `files`, and publish config.
+- `packages/cli/package.json` for the authoritative current version, `bin`, `files`, and publish config.
+- `packages/cli/CHANGELOG.md` for historical versions.
 - `packages/core/package.json` for private package status.
 - `.changeset/config.json` for Changesets behavior.
 - `.github/workflows/ci.yml`, `.github/workflows/release.yml`, and `mise.toml` for CI tool installation and publishing.

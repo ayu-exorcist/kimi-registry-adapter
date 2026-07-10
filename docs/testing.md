@@ -51,12 +51,13 @@ pnpm check
 
 ### Test Layout
 
-Core tests live under `packages/core/test` and cover:
+Most core tests live under `packages/core/test`; `packages/core/src/diagnostics.test.ts` is a colocated test. Together they cover:
 
 - atomic file writes and fault recovery
 - auth precedence and auth file behavior
 - config parsing and generated JSON Schema consistency
 - fetch error formatting and retry behavior
+- opt-in diagnostics, level filtering, path overrides, and secret-field redaction
 - git initialization and state commits
 - lock behavior
 - provider descriptors and provider ID safety
@@ -149,6 +150,6 @@ This document was checked against:
 - `.github/workflows/ci.yml` and `.github/workflows/release.yml` for CI/release gates.
 - `scripts/binary-smoke.ts` for built CLI smoke-test behavior.
 - `scripts/generate-config-schema.ts` for generated artifact verification commands.
-- `packages/core/test` and `packages/cli/test` for the current test layout.
+- `packages/core/test`, `packages/core/src/diagnostics.test.ts`, and `packages/cli/test` for the current test layout.
 
 Related references: `docs/cli-and-server.md` for CLI/server seams and `docs/configuration.md` for config/schema seams.

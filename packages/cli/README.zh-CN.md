@@ -217,9 +217,15 @@ npx @kastral/kra add moonshot \
 
 ## `serve` 提供的 HTTP 端点
 
-- `GET /healthz` — 运行时健康信息和已加载的 provider ID。
+- `GET /healthz` — 运行时健康信息和已加载的 provider ID。即使 JSON 中的 `status` 为 `degraded`，该端点仍返回 HTTP `200`。
 - `GET /api.json` — 所有已加载 provider 的聚合 registry。
 - `GET /:providerId/api.json` — 单个 provider 的 registry；这是用于 Kimi 导入的 URL。
+
+## 诊断日志
+
+设置 `KRA_DEBUG=1` 可写入结构化 JSON Lines 诊断日志。默认路径为 `~/.kimi-registry-adapter/logs/kra-debug.log`；命令的 `--state-dir` 不会改变该路径，`KRA_LOG_FILE=<path>` 可以覆盖它。`KRA_LOG_LEVEL` 接受 `debug`、`info`、`warn` 或 `error`。
+
+常规故障排查应优先使用 `KRA_DEBUG=1`。交互模式下的 `KRA_LOG=1` 还会在 debug 级别记录原始 stdin 数据块，可能捕获在提示中输入的 secret。分享前请审查并妥善保护日志。KRA 不负责日志轮转。
 
 ## 相关文档
 
@@ -227,6 +233,7 @@ npx @kastral/kra add moonshot \
 - [CLI 与 server 参考](../../docs/cli-and-server.md)
 - [配置与 registry 参考](../../docs/configuration.md)
 - [状态与更新设计](../../docs/state-and-update.md)
+- [运维与故障排查](../../docs/operations.md)
 - [发布与 npm 发布](../../docs/release.md)
 - [测试与校验](../../docs/testing.md)
 

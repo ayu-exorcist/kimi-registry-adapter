@@ -73,6 +73,7 @@ Important options:
 - `--model-source-path <path>` for `local_file`.
 - `--model-source-url <url>` for `remote_url`, or as a full endpoint override for endpoint sources.
 - `--models-metadata-path <url-or-file>`; default metadata source is `https://models.dev/models.json`.
+- `--name <display-name>` and `--npm <package>` set optional generated provider metadata.
 - `--api-key-env <ENV_NAME>` stores an environment variable reference in `config.json`.
 - `--api-key <key>` supplies a transient key for this run only; it is not written to `config.json`.
 - `--include` and `--exclude` accept repeated, comma-separated, or space-separated model ID patterns.
@@ -149,11 +150,17 @@ Scheduled updates skip a run if the previous scheduled run is still active.
 
 `kra serve` exposes:
 
-- `GET /healthz` — JSON health snapshot with state directory, loaded provider count, provider IDs, optional invalid-registry count, and optional scheduled-update health.
-- `GET /api.json` — aggregate registry built from all currently loaded valid provider registries.
+- `GET /healthz` — HTTP `200` JSON snapshot with state directory, loaded provider count, provider IDs, optional invalid-registry count, and optional scheduled-update health. Top-level `status` covers serving readiness; nested `updates.status` is independent.
+- `GET /api.json` — HTTP `200` aggregate registry built from all currently loaded valid provider registries; it can be `{}` when none are loaded.
 - `GET /:providerId/api.json` — one provider registry; returns `400` for an invalid provider ID and `503` when no valid registry is currently available for that provider.
 
-The server scans `registries/*/api.json` at startup and watches those files for add, change, and unlink events. Each provider registry file must contain exactly one provider entry matching the directory name. Invalid files are excluded from the cache and reported through degraded health. If a previously valid file becomes invalid, the last valid cached version remains served until the file is fixed or removed.
+The server scans `registries/*/api.json` at startup and watches those files for add, change, and unlink events. Each provider registry file must contain exactly one provider entry matching the directory name. Invalid files are excluded from the cache and reported through degraded health. If a previously valid file becomes invalid, the last valid cached version remains served until the file is fixed or removed. Health consumers must inspect the JSON body rather than treating HTTP `200` alone as readiness.
+
+### Diagnostics Handoff
+
+`KRA_DEBUG=1` and `KRA_LOG=1` enable structured diagnostics; `KRA_LOG_LEVEL` controls the minimum level and `KRA_LOG_FILE` overrides the destination. The default active path is `~/.kimi-registry-adapter/logs/kra-debug.log`, independent of a command-level `--state-dir` override.
+
+Use `KRA_DEBUG=1` for routine diagnosis. In interactive mode, `KRA_LOG=1` also emits raw stdin bytes at debug level and can capture secrets entered at prompts. KRA appends without rotation. See `docs/operations.md` for the complete security boundary, health interpretation, supervision, and recovery playbooks.
 
 ## Code Consistency Check
 
@@ -164,3 +171,4 @@ This document was checked against:
 - `packages/cli/src/commands/command-mode-args.ts`, `command-mode-handlers.ts`, and `args.ts` for flags, defaults, parsing, and JSON output shape.
 - `packages/cli/src/commands/interactive-add.ts` and `interactive-update-action.ts` for prompt flow and editable provider actions.
 - `packages/cli/src/commands/server-runtime.ts`, `duration.ts`, and `packages/cli/src/server/index.ts` for serve behavior, update scheduling, health tracking, and HTTP endpoints.
+- `packages/core/src/logger.ts` and `packages/cli/src/prompts/terminal-session.ts` for diagnostics flags and interactive raw-input behavior.

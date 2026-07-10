@@ -83,6 +83,8 @@ Use `--update-concurrency <n>` to update multiple providers at once and `--updat
 
 Use a terminal, startup script, or OS service to keep `kra serve` running. KRA intentionally does not use MCP for this because MCP servers start too late in the Kimi startup sequence to prevent registry refresh failures.
 
+For troubleshooting, `KRA_DEBUG=1` enables structured diagnostics. Logs default to `~/.kimi-registry-adapter/logs/kra-debug.log`; `--state-dir` does not relocate them, so use `KRA_LOG_FILE` for a custom path. Prefer `KRA_DEBUG=1` over `KRA_LOG=1` for general diagnosis because interactive `KRA_LOG=1` can record raw terminal input bytes. See [Operations and troubleshooting](./docs/operations.md) for health, supervision, security, and recovery details.
+
 ## Packages
 
 | Package                                          | Purpose                                                                                          |
@@ -136,7 +138,7 @@ auth.json                                # optional local credentials or env-var
 
 Only edit `registries/<providerId>/api.json`. Do not edit files under `.internal/`; KRA uses them for source snapshots and update merge baselines.
 
-KRA commits successful `add`, `update`, and `remove` state changes when git is available. If git is not installed, KRA still updates and merges registries using `.internal/state.json`. If you manually edit `api.json`, validate the JSON shape before committing your edit with git; KRA also validates registry files when it loads them for serving. Future `kra update` runs use `.internal/state.json.lastGeneratedRegistry` as the merge baseline, so manual commits do not become the generated baseline.
+KRA commits successful `add`, `update`, and `remove` state changes when git is available. If git is not installed, KRA still updates and merges registries using `.internal/state.json`. If you manually edit `api.json`, validate the JSON shape before committing your edit with git; KRA also validates registry files when it loads them for serving. Future `kra update` runs normally use `.internal/state.json.lastGeneratedRegistry` as the merge baseline. If that internal state is unavailable, KRA falls back to the committed `api.json`, then to the newly generated registry; a manual commit can therefore become a recovery baseline only in that fallback case.
 
 Use `--state-dir <path>` in CLI commands to target another directory.
 
@@ -163,6 +165,7 @@ The generated JSON schema is stored in [`schemas/config.schema.json`](./schemas/
 - [CLI and server reference](./docs/cli-and-server.md)
 - [Configuration and registry reference](./docs/configuration.md)
 - [State and update design](./docs/state-and-update.md)
+- [Operations and troubleshooting](./docs/operations.md)
 - [Release and publishing](./docs/release.md)
 - [Testing and verification](./docs/testing.md)
 

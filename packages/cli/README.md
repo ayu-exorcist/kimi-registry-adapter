@@ -217,9 +217,15 @@ Update modes:
 
 ## HTTP endpoints from `serve`
 
-- `GET /healthz` — runtime health and loaded provider IDs.
+- `GET /healthz` — runtime health and loaded provider IDs. It returns HTTP `200` even when the JSON `status` is `degraded`.
 - `GET /api.json` — aggregate registry across all loaded providers.
 - `GET /:providerId/api.json` — registry for one provider; this is the URL printed for Kimi imports.
+
+## Diagnostics
+
+Set `KRA_DEBUG=1` to write structured JSON Lines diagnostics. The default path is `~/.kimi-registry-adapter/logs/kra-debug.log`; a command-level `--state-dir` does not change it, while `KRA_LOG_FILE=<path>` does. `KRA_LOG_LEVEL` accepts `debug`, `info`, `warn`, or `error`.
+
+Prefer `KRA_DEBUG=1` for routine troubleshooting. In interactive mode, `KRA_LOG=1` also records raw stdin chunks at debug level and can capture secrets entered at prompts. Review and protect logs before sharing them. KRA does not rotate the file.
 
 ## Related docs
 
@@ -227,6 +233,7 @@ Update modes:
 - [CLI and server reference](../../docs/cli-and-server.md)
 - [Configuration and registry reference](../../docs/configuration.md)
 - [State and update design](../../docs/state-and-update.md)
+- [Operations and troubleshooting](../../docs/operations.md)
 - [Release and publishing](../../docs/release.md)
 - [Testing and verification](../../docs/testing.md)
 

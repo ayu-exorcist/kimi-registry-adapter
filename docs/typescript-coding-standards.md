@@ -12,6 +12,7 @@
   - `noFallthroughCasesInSwitch`
   - `noImplicitOverride`
   - `noUncheckedIndexedAccess`
+  - `noPropertyAccessFromIndexSignature`
   - `exactOptionalPropertyTypes`
   - `useUnknownInCatchVariables`
   - `allowUnreachableCode: false`

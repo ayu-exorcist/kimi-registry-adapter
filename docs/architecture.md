@@ -10,6 +10,7 @@ Objective facts:
 - `@kastral/kra-core` from `packages/core` is private workspace code used by the CLI and bundled into the CLI build.
 - Runtime state defaults to `~/.kimi-registry-adapter`; the default HTTP bind address is `127.0.0.1:2727`.
 - The current CLI command surface is default interactive mode plus `add`, `list`, `auth`, `update`, `remove`, and `serve`.
+- Opt-in structured diagnostics span the CLI prompt boundary and core network client.
 - Detailed command flags and HTTP endpoint behavior are documented in `docs/cli-and-server.md`.
 
 Implicit assumptions:
@@ -21,10 +22,10 @@ Implicit assumptions:
 
 KRA is split into two main packages:
 
-| Layer                 | Package             | Responsibility                                                                                                                                                    |
-| --------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User/runtime boundary | `@kastral/kra`      | CLI command parsing, interactive prompts, output rendering, HTTP registry server startup, file watching                                                           |
-| Domain engine         | `@kastral/kra-core` | Config/auth parsing, provider ID safety, model discovery, metadata enrichment, registry transformation, merge/update behavior, state mutations, local git commits |
+| Layer                 | Package             | Responsibility                                                                                                                                                     |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| User/runtime boundary | `@kastral/kra`      | CLI parsing, interactive prompts, output rendering, diagnostics setup, HTTP server startup, file watching                                                          |
+| Domain engine         | `@kastral/kra-core` | Config/auth parsing, provider ID safety, model discovery, metadata enrichment, registry transformation, merge/update behavior, state mutations, local git, logging |
 
 The main runtime flows are:
 
@@ -33,6 +34,7 @@ The main runtime flows are:
 3. Update: `kra update <providerId>` resolves the model source and auth, transforms discovered models into generated registry data, then either merges or overwrites the editable registry.
 4. Serve: `kra serve` optionally updates configured providers, finds an available port at or above the requested port, starts a Hono HTTP app, loads current registry files, watches `registries/*/api.json` for cache refresh, and reports update health from the scheduled-update tracker.
 5. Removal: `kra remove <providerId>` removes matching config/auth entries when present and deletes the provider registry directory unless `--keep-files` is set. This also supports deleting a local-only registry with no corresponding provider config.
+6. Diagnostics: `KRA_DEBUG=1` or `KRA_LOG=1` enables JSON Lines events from instrumented core network calls and prompt lifecycle code. `KRA_LOG_FILE` controls the destination; logging failures never fail the user operation.
 
 ## Bottom-Layer Details
 
@@ -55,7 +57,7 @@ Interactive add walks through provider ID, base URL, auth mode, provider type, m
 
 `packages/cli/src/server/index.ts` builds a Hono app with these endpoints:
 
-- `GET /healthz` returns status, state directory, provider count, provider IDs, invalid-registry count when present, and scheduled-update health when `serve` supplies it.
+- `GET /healthz` returns HTTP `200` with serving status, state directory, provider count, provider IDs, invalid-registry count when present, and a separate scheduled-update health object when `serve` supplies it. Clients must inspect the JSON status fields.
 - `GET /api.json` returns an aggregate registry made from all loaded provider registries.
 - `GET /:providerId/api.json` returns one provider registry, `400` for an invalid `providerId`, or `503` when that registry is unavailable.
 
@@ -87,6 +89,7 @@ CLI args / prompts
 - Registry server cache loading ignores invalid or unreadable registry files and reports degraded health.
 - `kra serve` update failures are logged as warnings so one failing provider does not stop the server from starting or scheduled updates from continuing.
 - Concurrent KRA processes coordinate with a global state lock and per-provider locks inside the same local state directory.
+- Diagnostics are disabled by default. Interactive `KRA_LOG=1` can record raw stdin bytes, so `KRA_DEBUG=1` is the safer default for general troubleshooting; neither mode replaces access control for log files.
 
 ## Code Consistency Check
 
@@ -97,5 +100,6 @@ This document was checked against:
 - `packages/core/src/operations/index.ts` for operation boundaries.
 - `packages/core/src/provider-id.ts` for provider ID and path safety.
 - `packages/core/src/lock.ts` for concurrency boundaries.
+- `packages/core/src/logger.ts`, `diagnostics.ts`, and `packages/cli/src/prompts/terminal-session.ts` for diagnostics behavior.
 
-Related references: `docs/cli-and-server.md` for command/server details and `docs/configuration.md` for config and registry field details.
+Related references: `docs/cli-and-server.md` for command/server details, `docs/configuration.md` for config and registry fields, and `docs/operations.md` for health, diagnostics, and recovery.

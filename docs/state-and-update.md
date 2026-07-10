@@ -10,6 +10,7 @@ Objective facts:
 - `registries/<providerId>/api.json` is the editable registry served to Kimi.
 - `registries/<providerId>/.internal/models.json` stores the last discovered source models as `{ "data": [...] }`.
 - `registries/<providerId>/.internal/state.json` stores KRA metadata, including `lastGeneratedRegistry` and update state.
+- The merge baseline normally comes from that internal state; if it is unavailable, KRA falls back to the committed editable registry and then the newly generated registry.
 - `config.json` and `auth.json` are separate files.
 - Detailed configuration and editable registry field references are documented in `docs/configuration.md`.
 
@@ -99,12 +100,15 @@ The transform layer filters and enriches discovered models before writing a regi
 
 `overwrite` replaces editable application data with the latest generated data. It is selected when `--force` is passed, when the effective update mode is `overwrite`, or when the provider/global config says `overwrite`.
 
-`merge` performs a three-way merge:
+`merge` performs a three-way merge across generated provider-level fields and each generated model field:
 
+- The old side is `.internal/state.json.lastGeneratedRegistry` when available, otherwise the git-committed `api.json`, otherwise the new generated registry.
 - If the current editable value still equals the old generated value, KRA takes the new generated value.
 - If the new generated value still equals the old generated value, KRA keeps the current editable value.
 - If all sides are plain objects, KRA recurses by key.
-- Otherwise KRA keeps the current editable value and records a conflict entry in `.internal/state.json.updateState.conflicts` plus a warning summary.
+- Otherwise KRA keeps the current editable value and records a conflict entry in `.internal/state.json.updateState.conflicts` plus a warning summary. Provider-level conflicts use `modelId: "__provider__"` in the stored conflict record.
+
+Generated provider fields such as `name`, `api`, `type`, `env`, and `npm` therefore receive upstream/config changes under the same preservation rules as model fields. Unknown extra editable fields are not traversed because no incoming generated key targets them.
 
 By default, models that are no longer generated are removed from the editable registry. Setting provider `preserveUnknownModels` keeps those unknown models. Before update, KRA refuses to proceed when the editable `api.json` already contains git conflict markers.
 
@@ -117,7 +121,7 @@ KRA uses two lock scopes:
 
 `updateProviderOperation` persists a non-dry-run `--update-mode` under the global state lock before discovery, prepares discovery outside the provider lock, then applies the prepared result under the provider lock. During apply, it re-reads provider config and provider auth snapshots; if either changed during discovery, the update aborts and asks the caller to retry.
 
-Registry writes use temporary files plus `write-transaction.json` so a later run can recover from a partial write. Config and auth writes are atomic text writes. Lock directories contain owner metadata and stale lock handling; locks coordinate KRA processes on one local host/state directory, not arbitrary external writers.
+Registry writes use temporary files plus `write-transaction.json` so a later run can recover from a partial write. Config and auth writes are atomic text writes. Lock directories contain owner metadata and stale lock handling; locks coordinate KRA processes on one local host/state directory, not arbitrary external writers. Operational timeout, stale-lock, and interrupted-write recovery guidance is in `docs/operations.md`.
 
 ## Code Consistency Check
 

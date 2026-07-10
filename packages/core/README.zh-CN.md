@@ -81,6 +81,7 @@ Provider 配置支持：
 - 选定的模型来源 helper，例如 `fetchProviderModels`、`readModelsPayload`、`readModelsMetadata` 和 `resolveModelsUrl`
 - registry schema 校验函数和 registry 类型
 - transform helper 和 metadata match 类型
+- diagnostics helper，以及 `diagnosticsLogFile`、`createOperationLogger`、`logDebug`/`logInfo`/`logWarn`/`logError` 等结构化日志函数
 - `KraConfig` 和 `ProviderConfig` 类型
 
 `state`、`lock`、`git`、`editable-registry-store` 等模块是 workspace 内部实现模块，不作为此包文档化的公共表面。
@@ -90,6 +91,8 @@ Provider 配置支持：
 完整状态与更新设计见 [State And Update Design](../../docs/state-and-update.md)。
 
 CLI/server 边界见 [CLI And Server Reference](../../docs/cli-and-server.md)。
+
+健康检查、诊断、进程托管和恢复见 [Operations And Troubleshooting](../../docs/operations.md)。
 
 测试覆盖、生成 schema 检查和验证命令见 [Testing And Verification](../../docs/testing.md)。
 
@@ -109,6 +112,7 @@ pnpm exec vitest run packages/core
 - [CLI 与 server 参考](../../docs/cli-and-server.md)
 - [配置与 registry 参考](../../docs/configuration.md)
 - [状态与更新设计](../../docs/state-and-update.md)
+- [运维与故障排查](../../docs/operations.md)
 - [发布与 npm 发布](../../docs/release.md)
 
 ## 许可证

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -226,6 +226,24 @@ describe('CLI command flows', () => {
     expect(
       JSON.parse(readFileSync(join(stateDir, 'auth.json'), 'utf8')).providers['provider-a'],
     ).toBeUndefined();
+  });
+
+  it('removes a local-only registry without a configured provider', async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), 'kra-cli-'));
+    const providerDir = join(stateDir, 'registries', 'orphan-provider');
+    mkdirSync(providerDir, { recursive: true });
+    writeFileSync(join(providerDir, 'api.json'), '{}\n');
+
+    const result = await runCliJson<RemoveCommandResult>([
+      'remove',
+      'orphan-provider',
+      '--state-dir',
+      stateDir,
+    ]);
+
+    expect(result.providerId).toBe('orphan-provider');
+    expect(result.deletedFiles).toBe(true);
+    expect(existsSync(providerDir)).toBe(false);
   });
 
   it('removes provider config, auth, and registry files', async () => {

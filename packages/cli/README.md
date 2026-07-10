@@ -128,7 +128,7 @@ npx @kastral/kra serve --host 127.0.0.1 --port 2727 --update-interval 1h
 npx @kastral/kra remove moonshot --keep-files
 ```
 
-Omit `--keep-files` to remove local registry files too.
+`remove` clears matching provider config and stored auth when present. Omit `--keep-files` to also delete `registries/<providerId>/`; this can be used to clean up a local-only registry that no longer has a provider entry in `config.json`.
 
 ## One-off package-runner mode
 

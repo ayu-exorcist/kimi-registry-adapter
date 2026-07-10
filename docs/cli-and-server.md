@@ -127,7 +127,7 @@ kra remove <providerId>
 kra remove <providerId> --keep-files
 ```
 
-`remove` deletes provider config and stored auth. Without `--keep-files`, it also removes `registries/<providerId>/`. The operation commits the resulting state change when git is available.
+`remove` deletes matching provider config and stored auth when present. Without `--keep-files`, it also removes `registries/<providerId>/`, including a local-only registry whose provider entry is no longer present in `config.json`. Missing config, auth, or registry entries are ignored. The operation commits the resulting state change when git is available.
 
 #### `serve`
 

@@ -32,7 +32,7 @@ The main runtime flows are:
 2. Scripted provider add: `kra add <providerId> --base-url <url>` saves provider config, updates the registry by default, commits state changes when git is available, and prints JSON output.
 3. Update: `kra update <providerId>` resolves the model source and auth, transforms discovered models into generated registry data, then either merges or overwrites the editable registry.
 4. Serve: `kra serve` optionally updates configured providers, finds an available port at or above the requested port, starts a Hono HTTP app, loads current registry files, watches `registries/*/api.json` for cache refresh, and reports update health from the scheduled-update tracker.
-5. Removal: `kra remove <providerId>` removes config/auth and deletes the provider registry directory unless `--keep-files` is set.
+5. Removal: `kra remove <providerId>` removes matching config/auth entries when present and deletes the provider registry directory unless `--keep-files` is set. This also supports deleting a local-only registry with no corresponding provider config.
 
 ## Bottom-Layer Details
 

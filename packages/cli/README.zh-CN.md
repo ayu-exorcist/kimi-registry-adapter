@@ -128,7 +128,7 @@ npx @kastral/kra serve --host 127.0.0.1 --port 2727 --update-interval 1h
 npx @kastral/kra remove moonshot --keep-files
 ```
 
-省略 `--keep-files` 时，也会删除本地 registry 文件。
+`remove` 会清除存在的同名 provider 配置和已存储认证。省略 `--keep-files` 时，还会删除 `registries/<providerId>/`；因此也可以用它清理 `config.json` 中已无对应 provider 的孤立本地 registry。
 
 ## 一次性 package runner 模式
 

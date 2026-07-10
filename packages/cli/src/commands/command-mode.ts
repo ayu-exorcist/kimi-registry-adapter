@@ -54,7 +54,7 @@ const createRemoveCommand = ({ providerIdArg, stateDirArg }: SharedArgs) =>
     meta: {
       name: 'remove',
       description:
-        'Remove a provider from config and auth, and delete its local registry files unless --keep-files is passed.',
+        'Remove matching provider config and auth when present, and delete its local registry files unless --keep-files is passed.',
     },
     args: {
       providerId: providerIdArg,

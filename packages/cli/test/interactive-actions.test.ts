@@ -586,9 +586,8 @@ describe('interactive provider actions', () => {
     expect(mocks.showNote).toHaveBeenCalledWith('No auth changes made.', 'Configure auth');
   });
 
-  it('removes a provider after file handling and confirmation prompts', async () => {
+  it('removes a provider and its local files after confirmation', async () => {
     mocks.selectExistingProviderId.mockResolvedValueOnce('provider-a');
-    mocks.selectPrompt.mockResolvedValueOnce('delete');
     mocks.confirmPrompt.mockResolvedValueOnce(true);
     mocks.withLoadingIndicator.mockImplementationOnce((_message, action) => action());
     mocks.removeProvider.mockResolvedValueOnce({
@@ -603,6 +602,11 @@ describe('interactive provider actions', () => {
 
     await runInteractiveRemoveProvider({ stateDir: '/state' });
 
+    expect(mocks.selectPrompt).not.toHaveBeenCalled();
+    expect(mocks.confirmPrompt).toHaveBeenCalledWith({
+      message: 'Remove provider-a config/auth and local registry files?',
+      initialValue: true,
+    });
     expect(mocks.removeProvider).toHaveBeenCalledWith({
       stateDir: '/state',
       providerId: 'provider-a',

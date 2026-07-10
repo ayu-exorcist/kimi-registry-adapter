@@ -719,6 +719,26 @@ describe('core operations', () => {
     ).toBeUndefined();
   });
 
+  it('removes a local-only registry without a configured provider', async () => {
+    const stateDir = createStateDir();
+    const providerDir = join(stateDir, 'registries', 'orphan-provider');
+    mkdirSync(providerDir, { recursive: true });
+    writeFileSync(join(providerDir, 'api.json'), '{}\n');
+
+    const result = await removeProvider({ stateDir, providerId: 'orphan-provider' });
+
+    expect(result).toMatchObject({
+      providerId: 'orphan-provider',
+      deletedFiles: true,
+    });
+    expect(existsSync(providerDir)).toBe(false);
+    expect(readConfig(join(stateDir, 'config.json')).providers).toEqual({});
+    expect(readAuthConfig(join(stateDir, 'auth.json')).providers).toEqual({});
+    await expect(
+      removeProvider({ stateDir, providerId: 'orphan-provider' }),
+    ).resolves.toMatchObject({ deletedFiles: true });
+  });
+
   it('removes provider config without committing kept registry edits', async () => {
     const stateDir = createStateDir();
     stubModelsAndMetadataFetch();

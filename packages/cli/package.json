@@ -51,9 +51,9 @@
     "@rabbx/watcher": "^1.2.0",
     "@xstate/fsm": "^2.1.0",
     "citty": "^0.2.2",
-    "hono": "^4.12.28",
+    "hono": "^4.12.29",
     "picocolors": "^1.1.1",
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.7.0"
   },
   "engines": {
     "node": ">=22.18"

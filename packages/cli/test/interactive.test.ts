@@ -5,17 +5,22 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { runInteractiveServe } from '../src/commands/interactive-actions';
-import { testExports } from '../src/index';
+import {
+  describeInteractiveAuthState,
+  formatInteractiveError,
+  getInteractiveAuthOptions,
+  getInteractiveMenuOptions,
+  listConfiguredProviderIds,
+  validateNewProviderId,
+} from '../src/commands/interactive-shared';
 
 describe('interactive CLI helpers', () => {
   it('shows only add provider when no providers exist', () => {
-    expect(testExports.getInteractiveMenuOptions([])).toEqual([
-      { value: 'add', label: 'Add provider' },
-    ]);
+    expect(getInteractiveMenuOptions([])).toEqual([{ value: 'add', label: 'Add provider' }]);
   });
 
   it('shows provider actions before the server action when providers exist', () => {
-    expect(testExports.getInteractiveMenuOptions(['provider-a'])).toEqual([
+    expect(getInteractiveMenuOptions(['provider-a'])).toEqual([
       { value: 'add', label: 'Add provider' },
       { value: 'remove', label: 'Remove provider' },
       { value: 'update', label: 'Update provider' },
@@ -60,11 +65,11 @@ describe('interactive CLI helpers', () => {
       ),
     );
 
-    expect(testExports.listConfiguredProviderIds(stateDir)).toEqual(['alpha', 'zebra']);
+    expect(listConfiguredProviderIds(stateDir)).toEqual(['alpha', 'zebra']);
   });
 
   it('validates new provider ids are required, safe, and unique', () => {
-    const validate = testExports.validateNewProviderId(['alpha']);
+    const validate = validateNewProviderId(['alpha']);
 
     expect(validate('')).toBe('Required.');
     expect(validate('../../outside')).toContain('must not contain path separators');
@@ -74,7 +79,7 @@ describe('interactive CLI helpers', () => {
 
   it('describes auth state from stored key and env reference', () => {
     expect(
-      testExports.describeInteractiveAuthState({
+      describeInteractiveAuthState({
         currentAuth: { apiKey: 'secret' },
         currentProviderConfig: undefined,
       }),
@@ -86,7 +91,7 @@ describe('interactive CLI helpers', () => {
     });
 
     expect(
-      testExports.describeInteractiveAuthState({
+      describeInteractiveAuthState({
         currentAuth: undefined,
         currentProviderConfig: { apiKeyEnv: 'PROVIDER_API_KEY' },
       }),
@@ -99,10 +104,10 @@ describe('interactive CLI helpers', () => {
   });
 
   it('formats interactive errors as concise single-line messages', () => {
-    expect(
-      testExports.formatInteractiveError(new Error('Failed to fetch models: 401\nSet auth.')),
-    ).toBe('Failed to fetch models: 401');
-    expect(testExports.formatInteractiveError('boom')).toBe('Unknown error');
+    expect(formatInteractiveError(new Error('Failed to fetch models: 401\nSet auth.'))).toBe(
+      'Failed to fetch models: 401',
+    );
+    expect(formatInteractiveError('boom')).toBe('Unknown error');
   });
 
   it('rejects interactive serve ports outside the TCP range before starting a server', async () => {
@@ -113,7 +118,7 @@ describe('interactive CLI helpers', () => {
 
   it('shows only meaningful auth actions for the current state', () => {
     expect(
-      testExports.getInteractiveAuthOptions({
+      getInteractiveAuthOptions({
         hasStoredApiKey: false,
         hasEnvReference: false,
       }),
@@ -126,7 +131,7 @@ describe('interactive CLI helpers', () => {
     });
 
     expect(
-      testExports.getInteractiveAuthOptions({
+      getInteractiveAuthOptions({
         hasStoredApiKey: true,
         hasEnvReference: true,
       }),

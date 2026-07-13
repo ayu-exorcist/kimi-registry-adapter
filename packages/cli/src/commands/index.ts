@@ -19,13 +19,10 @@ import {
 } from './interactive-actions';
 import { runInteractiveAddProvider } from './interactive-add';
 import {
-  defaultProviderApiKeyEnvName,
-  describeInteractiveAuthState,
-  getInteractiveAuthOptions,
+  formatInteractiveError,
   getInteractiveMenuOptions,
   listConfiguredProviderIds,
   unwrapCustomSelect,
-  validateNewProviderId,
   type MainInteractiveAction,
 } from './interactive-shared';
 import { selectPrompt } from './prompt-adapters';
@@ -36,25 +33,8 @@ configureDiagnostics({ defaultLogDir: resolve(DEFAULT_STATE_DIR, 'logs') });
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 2727;
 
-const formatInteractiveError = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message.split('\n')[0] ?? error.message;
-  }
-  return 'Unknown error';
-};
-
 const showInteractiveError = async (error: unknown, title = 'Action failed'): Promise<void> => {
   await showInteractiveNote(formatInteractiveError(error), title);
-};
-
-export const testExports = {
-  getInteractiveMenuOptions,
-  listConfiguredProviderIds,
-  validateNewProviderId,
-  defaultProviderApiKeyEnvName,
-  describeInteractiveAuthState,
-  getInteractiveAuthOptions,
-  formatInteractiveError,
 };
 
 const runInteractiveMenu = async (options: {

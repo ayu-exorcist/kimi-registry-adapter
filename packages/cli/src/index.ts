@@ -6,7 +6,7 @@ import { formatNetworkError, KraFetchError } from '@kastral/kra-core';
 
 import { runCli } from './commands';
 
-export { runCli, testExports } from './commands';
+export { runCli } from './commands';
 
 export const isCliEntrypoint = (metaUrl: string, argv1: string | undefined): boolean => {
   if (!argv1 || !metaUrl.startsWith('file:')) {

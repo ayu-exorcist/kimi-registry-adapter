@@ -1,5 +1,15 @@
 # @kastral/kra
 
+## 1.0.0
+
+### Major Changes
+
+- [`e896c5e`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/e896c5e19c5a5e93290bc64c1fcc140defe0a526) - Remove the undocumented `testExports` public export. Tests now import internal interactive helpers directly.
+
+### Patch Changes
+
+- [`065061f`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/065061f9707854fe54e4ed272056bd8ef4f55a96) - Update runtime and build dependencies.
+
 ## 0.2.0
 
 ### Minor Changes

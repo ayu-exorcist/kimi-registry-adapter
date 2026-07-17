@@ -1,5 +1,15 @@
 # @kastral/kra
 
+## 1.0.1
+
+### Patch Changes
+
+- [`7a4fe24`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/7a4fe24e71545f5eb3d015e0a53fde66eb07a437) - Stop npm package runners from warning about pnpm's strict peer dependency setting by storing it in `pnpm-workspace.yaml`.
+
+- [`eb2291a`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/eb2291aba60c51adeb0f28c3ce3b1a8d47fd496e) - Prevent interactive menus from freezing when a terminal sends an incomplete or unsupported dynamic theme response. Prompt input, including Ctrl+C, now recovers after a bounded timeout while valid split theme responses continue to work.
+
+- [`da38b8b`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/da38b8b197435627670d913ac1a8a6b1f25e6ec9) - Update the Hono runtime packages and refresh workspace development tooling to their latest available versions, while retaining the Node.js 22 type definitions.
+
 ## 1.0.0
 
 ### Major Changes

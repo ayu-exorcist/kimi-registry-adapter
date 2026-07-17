@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { selectPrompt } from '../src/prompts/select';
 import {
+  disposePromptReadline,
   installTerminalThemeTracking,
   promptKeyInput,
   setPromptRuntime,
@@ -21,6 +22,7 @@ import {
 import { loadKimiThemePreference } from '../src/theme/kimi-theme';
 import {
   OSC11_QUERY,
+  TERMINAL_THEME_INPUT_BUFFER_TIMEOUT_MS,
   TERMINAL_THEME_LIGHT,
   createTerminalThemeInputState,
   detectTerminalTheme,
@@ -58,6 +60,8 @@ const createOutput = (): { output: typeof process.stdout; write: ReturnType<type
 };
 
 afterEach(async () => {
+  vi.useRealTimers();
+  disposePromptReadline();
   setColorPalette(darkColors);
   await Promise.all(
     temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true })),
@@ -188,6 +192,71 @@ describe('terminal theme detection and tracking', () => {
     }
   });
 
+  it('recovers prompt keys after an incomplete OSC 11 response times out', async () => {
+    const { input } = createRawInput();
+    const { output } = createOutput();
+    const restore = setPromptRuntime({ input, output });
+    const dispose = installTerminalThemeTracking(() => {});
+
+    try {
+      let settled = false;
+      const selected = selectPrompt({
+        message: 'Choose provider',
+        options: [
+          { value: 'alpha', label: 'Alpha' },
+          { value: 'bravo', label: 'Bravo' },
+        ],
+        clearOnExit: false,
+      });
+      void selected.then(() => {
+        settled = true;
+      });
+
+      input.emit('data', Buffer.from('\u001B]11;rgb:ffff/'));
+      input.emit('data', Buffer.from('\u001B[B\r'));
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, TERMINAL_THEME_INPUT_BUFFER_TIMEOUT_MS + 25),
+      );
+      input.emit('data', Buffer.from('\u001B[B\r'));
+      await expect(
+        Promise.race([
+          selected,
+          new Promise((resolve) => setTimeout(() => resolve('timeout'), 1_000)),
+        ]),
+      ).resolves.toBe('bravo');
+    } finally {
+      dispose();
+      restore();
+    }
+  });
+
+  it('forwards ctrl+c after an incomplete OSC 11 response times out', async () => {
+    const { input } = createRawInput();
+    const { output } = createOutput();
+    const restore = setPromptRuntime({ input, output });
+    const dispose = installTerminalThemeTracking(() => {});
+    const forwarded: string[] = [];
+    promptKeyInput().on('data', (chunk: Buffer) => forwarded.push(chunk.toString('hex')));
+
+    try {
+      input.emit('data', Buffer.from('\u001B]11;rgb:ffff/'));
+      input.emit('data', Buffer.from([3]));
+      expect(forwarded).toEqual([]);
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, TERMINAL_THEME_INPUT_BUFFER_TIMEOUT_MS + 25),
+      );
+      input.emit('data', Buffer.from([3]));
+      expect(forwarded).toEqual(['03']);
+    } finally {
+      dispose();
+      restore();
+    }
+  });
+
   it('buffers split OSC 11 reports without forwarding their control bytes', () => {
     const { output } = createOutput();
     const themes: string[] = [];
@@ -200,5 +269,17 @@ describe('terminal theme detection and tracking', () => {
       handleTerminalThemeInput('ffff/ffff\u0007x', output, (theme) => themes.push(theme), state),
     ).toEqual({ data: 'x' });
     expect(themes).toEqual(['light']);
+  });
+
+  it('reprocesses the current input when an incomplete OSC 11 response exceeds its limit', () => {
+    const { output } = createOutput();
+    const state = createTerminalThemeInputState();
+
+    expect(handleTerminalThemeInput('\u001B]11;rgb:ffff/', output, () => {}, state)).toEqual({
+      consume: true,
+    });
+    const keyboardInput = 'x'.repeat(512);
+    expect(handleTerminalThemeInput(keyboardInput, output, () => {}, state)).toBeUndefined();
+    expect(state.osc11Buffer).toBe('');
   });
 });

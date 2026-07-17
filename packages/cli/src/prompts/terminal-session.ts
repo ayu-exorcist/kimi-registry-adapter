@@ -8,6 +8,7 @@ import {
   ENABLE_TERMINAL_THEME_REPORTING,
   OSC11_QUERY,
   QUERY_TERMINAL_THEME,
+  TERMINAL_THEME_INPUT_BUFFER_TIMEOUT_MS,
   createTerminalThemeInputState,
   handleTerminalThemeInput,
   type ResolvedTheme,
@@ -197,9 +198,30 @@ export const installTerminalThemeTracking = (
 
   const keyInput = new PassThrough();
   const inputState = createTerminalThemeInputState();
+  let osc11BufferTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearOsc11BufferTimer = (): void => {
+    if (osc11BufferTimer === undefined) return;
+    clearTimeout(osc11BufferTimer);
+    osc11BufferTimer = undefined;
+  };
+  const updateOsc11BufferTimer = (wasBuffering: boolean): void => {
+    if (inputState.osc11Buffer.length === 0) {
+      clearOsc11BufferTimer();
+      return;
+    }
+    if (wasBuffering || osc11BufferTimer !== undefined) return;
+    osc11BufferTimer = setTimeout(() => {
+      const bufferedBytes = Buffer.byteLength(inputState.osc11Buffer);
+      inputState.osc11Buffer = '';
+      osc11BufferTimer = undefined;
+      logDebug('prompt.terminal', 'theme.osc11.buffer.timeout', { bufferedBytes });
+    }, TERMINAL_THEME_INPUT_BUFFER_TIMEOUT_MS);
+  };
   const handleData = (chunk: Buffer | string): void => {
     const data = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
+    const wasBuffering = inputState.osc11Buffer.length > 0;
     const result = handleTerminalThemeInput(data, output, onTheme, inputState);
+    updateOsc11BufferTimer(wasBuffering);
     if (result === undefined) {
       keyInput.write(data);
       return;
@@ -224,6 +246,8 @@ export const installTerminalThemeTracking = (
   return (): void => {
     if (promptInputRouter !== router) return;
     input.removeListener('data', handleData);
+    clearOsc11BufferTimer();
+    inputState.osc11Buffer = '';
     promptInputRouter = undefined;
     keyInput.end();
     try {

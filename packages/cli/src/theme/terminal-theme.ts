@@ -16,6 +16,7 @@ const OSC11_RESPONSE = new RegExp(
 const OSC11_RESPONSE_PREFIX = `${ESC}]11;rgb:`;
 const OSC11_RESPONSE_PREFIX_NO_ESC = ']11;rgb:';
 const TERMINAL_THEME_INPUT_BUFFER_MAX_LENGTH = 512;
+export const TERMINAL_THEME_INPUT_BUFFER_TIMEOUT_MS = 250;
 
 type TerminalInput = Pick<
   typeof process.stdin,
@@ -204,8 +205,11 @@ export const handleTerminalThemeInput = (
       inputState.osc11Buffer = '';
       return resultFromRemaining(stripped);
     }
-    inputState.osc11Buffer =
-      candidate.length > TERMINAL_THEME_INPUT_BUFFER_MAX_LENGTH ? '' : candidate;
+    if (candidate.length > TERMINAL_THEME_INPUT_BUFFER_MAX_LENGTH) {
+      inputState.osc11Buffer = '';
+      return handleTerminalThemeInput(data, output, onTheme, inputState);
+    }
+    inputState.osc11Buffer = candidate;
     return { consume: true };
   }
 

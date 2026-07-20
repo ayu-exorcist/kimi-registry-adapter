@@ -1,5 +1,11 @@
 # @kastral/kra
 
+## 1.0.3
+
+### Patch Changes
+
+- [`e54568e`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/e54568e10ee790c4f69dc891ad7504178188877b) - Fix provider updates that could persist invalid merge conflicts, wait on response bodies without a timeout, or ignore cancellation in interactive loading states. Provider discovery now validates local state before network work, fetches models and metadata concurrently, reuses the default metadata cache across CLI runs, and keeps the busy warning below the active spinner.
+
 ## 1.0.2
 
 ### Patch Changes

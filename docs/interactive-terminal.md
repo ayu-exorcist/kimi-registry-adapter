@@ -37,6 +37,9 @@ During the session:
 - loading indicators do not release raw mode;
 - transitions never remove the session-level stdin data listener;
 - raw mode remains enabled across prompt/loading/prompt sequences;
+- a loading indicator retains ownership until filtered keyboard input is idle, so held keys and incomplete terminal escape sequences cannot control the next prompt;
+- loading input is discarded except for `Ctrl+C`, which displays the existing busy warning without interrupting the operation;
+- the input-idle boundary applies to both resolved and rejected loading actions;
 - diagnostics report `inputSessionActive`, `readableFlowing`, and physical stdin data-listener counts.
 
 At interactive shutdown KRA:
@@ -56,6 +59,8 @@ Automated tests must cover repeated `loading -> prompt` transitions through the 
 - `setRawMode(true)` occurs once at session startup;
 - prompt cleanup does not call `setRawMode(false)`;
 - input remains usable after repeated transitions;
+- loading input, including a terminal escape sequence split across chunks, cannot control the next prompt;
+- repeated input cannot cross the loading boundary when an action rejects and the interaction recovers;
 - session shutdown removes its route and calls `setRawMode(false)` once.
 
 A release smoke test on Windows Terminal should also update a provider's selected model list repeatedly and verify that the returned provider menu accepts an arrow key immediately. In-memory `PassThrough` tests protect ownership and listener counts but cannot fully emulate the Windows console handle.

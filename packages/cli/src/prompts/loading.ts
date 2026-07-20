@@ -4,6 +4,7 @@ import { colorize } from '../theme';
 import { clearTerminalScreen, renderAppHeader } from './screen';
 import {
   createPromptCleanup,
+  createPromptInputBoundary,
   preparePromptInput,
   promptKeyInput,
   promptOutput,
@@ -48,6 +49,7 @@ export const withLoadingIndicator = async <T>(
   };
 
   preparePromptInput();
+  const inputBoundary = createPromptInputBoundary();
   const keypressHandler = (_char: string, key: readline.Key): void => {
     if (!key) {
       return;
@@ -72,13 +74,18 @@ export const withLoadingIndicator = async <T>(
   try {
     return await action();
   } finally {
-    clearTimeout(delayTimer);
-    if (timer) {
-      clearInterval(timer);
-    }
-    cleanup();
-    if (didRender) {
-      promptOutput().write('\r\u001B[2K');
+    try {
+      await inputBoundary.waitForIdle();
+    } finally {
+      inputBoundary.dispose();
+      clearTimeout(delayTimer);
+      if (timer) {
+        clearInterval(timer);
+      }
+      cleanup();
+      if (didRender) {
+        promptOutput().write('\r\u001B[2K');
+      }
     }
   }
 };

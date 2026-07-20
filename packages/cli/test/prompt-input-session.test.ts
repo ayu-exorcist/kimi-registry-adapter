@@ -88,6 +88,100 @@ describe('interactive prompt input session', () => {
     expect(setRawMode.mock.calls).toEqual([[true], [false]]);
   });
 
+  it('keeps a split loading key sequence out of the following prompt', async () => {
+    vi.useFakeTimers();
+    const { input } = createRawInput();
+    const restore = setPromptRuntime({ input, output: createOutput() });
+    let disposeSession: (() => void) | undefined;
+    let resolveAction: (() => void) | undefined;
+
+    try {
+      disposeSession = installPromptInputSession();
+      const action = new Promise<void>((resolvePromise) => {
+        resolveAction = resolvePromise;
+      });
+      let settled = false;
+      const flow = (async () => {
+        await withLoadingIndicator('Updating provider...', () => action, { delayMs: 1_000 });
+        return selectPrompt({
+          message: 'Next action',
+          options: [
+            { value: 'alpha', label: 'Alpha' },
+            { value: 'bravo', label: 'Bravo' },
+          ],
+        });
+      })().then((value) => {
+        settled = true;
+        return value;
+      });
+
+      input.write(Buffer.from('\u001B'));
+      resolveAction?.();
+      setTimeout(() => input.write(Buffer.from('[B\r')), 10);
+
+      await vi.advanceTimersByTimeAsync(510);
+      expect(settled).toBe(false);
+
+      input.write(Buffer.from('\r'));
+      await expect(flow).resolves.toBe('alpha');
+    } finally {
+      disposePromptReadline();
+      disposeSession?.();
+      disposePromptInputSession();
+      restore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('discards repeated loading input before recovering from an action error', async () => {
+    vi.useFakeTimers();
+    const { input } = createRawInput();
+    const restore = setPromptRuntime({ input, output: createOutput() });
+    let disposeSession: (() => void) | undefined;
+    let rejectAction: ((reason: Error) => void) | undefined;
+
+    try {
+      disposeSession = installPromptInputSession();
+      const actionError = new Error('update failed');
+      const action = new Promise<void>((_resolvePromise, rejectPromise) => {
+        rejectAction = rejectPromise;
+      });
+      let loadingError: unknown;
+      const flow = (async () => {
+        try {
+          await withLoadingIndicator('Updating provider...', () => action, { delayMs: 1_000 });
+        } catch (error) {
+          loadingError = error;
+        }
+        return selectPrompt({
+          message: 'Recover action',
+          options: [
+            { value: 'alpha', label: 'Alpha' },
+            { value: 'bravo', label: 'Bravo' },
+          ],
+        });
+      })();
+
+      input.write(Buffer.from('\u001B[B'));
+      rejectAction?.(actionError);
+      setTimeout(() => input.write(Buffer.from('\u001B[B')), 10);
+      setTimeout(() => input.write(Buffer.from('\u001B[B')), 50);
+      setTimeout(() => input.write(Buffer.from('\u001B[B')), 90);
+
+      await vi.advanceTimersByTimeAsync(600);
+      expect(loadingError).toBe(actionError);
+
+      input.write(Buffer.from('\r'));
+      await expect(flow).resolves.toBe('alpha');
+    } finally {
+      disposePromptReadline();
+      disposeSession?.();
+      disposePromptInputSession();
+      restore();
+      vi.useRealTimers();
+    }
+  });
+
   it('disposes the session idempotently', () => {
     const { input, setRawMode } = createRawInput();
     const restore = setPromptRuntime({ input, output: createOutput() });

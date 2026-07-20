@@ -45,6 +45,7 @@ vi.mock('../src/commands/render', async (importOriginal) => {
 
 describe('interactive menu exit', () => {
   const originalStdinIsTTY = process.stdin.isTTY;
+  const originalStdinSetRawMode = process.stdin.setRawMode;
   const originalStdoutIsTTY = process.stdout.isTTY;
 
   afterEach(() => {
@@ -52,6 +53,10 @@ describe('interactive menu exit', () => {
     Object.defineProperty(process.stdin, 'isTTY', {
       configurable: true,
       value: originalStdinIsTTY,
+    });
+    Object.defineProperty(process.stdin, 'setRawMode', {
+      configurable: true,
+      value: originalStdinSetRawMode,
     });
     Object.defineProperty(process.stdout, 'isTTY', {
       configurable: true,
@@ -61,6 +66,10 @@ describe('interactive menu exit', () => {
 
   it('disposes the shared prompt readline when the main menu is cancelled', async () => {
     Object.defineProperty(process.stdin, 'isTTY', { configurable: true, value: true });
+    Object.defineProperty(process.stdin, 'setRawMode', {
+      configurable: true,
+      value: vi.fn(),
+    });
     Object.defineProperty(process.stdout, 'isTTY', { configurable: true, value: true });
     mocks.selectPrompt.mockResolvedValueOnce(Symbol('cancel'));
 

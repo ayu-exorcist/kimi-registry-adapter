@@ -27,6 +27,11 @@ export interface TerminalResizeOptions {
   pollMs?: number;
 }
 
+export interface PromptInputBoundary {
+  waitForIdle: () => Promise<void>;
+  dispose: () => void;
+}
+
 export type PromptRuntime = {
   input: typeof process.stdin;
   output: typeof process.stdout;
@@ -229,6 +234,107 @@ export const installPromptInputSession = (): (() => void) => {
 
 export const disposePromptInputSession = (): void => {
   promptInputSession?.dispose();
+};
+
+const PROMPT_INPUT_IDLE_MS = 500;
+
+/**
+ * Keep the current interaction active until filtered keyboard input is idle.
+ * This drains held keys and incomplete escape sequences without pausing the
+ * session-level stdin route or changing raw mode between interactions.
+ */
+export const createPromptInputBoundary = (
+  options: { idleMs?: number } = {},
+): PromptInputBoundary => {
+  const idleMs = Math.max(0, options.idleMs ?? PROMPT_INPUT_IDLE_MS);
+  const input = promptKeyInput();
+  let disposed = false;
+  let lastInputAt: number | undefined;
+  let handoffImmediate: ReturnType<typeof setImmediate> | undefined;
+  let resolveHandoff: (() => void) | undefined;
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  let resolveIdle: (() => void) | undefined;
+  let waitPromise: Promise<void> | undefined;
+
+  const finishIdleWait = (): void => {
+    if (idleTimer !== undefined) {
+      clearTimeout(idleTimer);
+      idleTimer = undefined;
+    }
+    const resolve = resolveIdle;
+    resolveIdle = undefined;
+    resolve?.();
+  };
+
+  const scheduleIdleWait = (): void => {
+    if (resolveIdle === undefined) return;
+    if (idleTimer !== undefined) {
+      clearTimeout(idleTimer);
+      idleTimer = undefined;
+    }
+    if (lastInputAt === undefined) {
+      finishIdleWait();
+      return;
+    }
+
+    const remainingMs = Math.max(0, idleMs - (Date.now() - lastInputAt));
+    idleTimer = setTimeout(() => {
+      idleTimer = undefined;
+      if (lastInputAt !== undefined && Date.now() - lastInputAt < idleMs) {
+        scheduleIdleWait();
+        return;
+      }
+      finishIdleWait();
+    }, remainingMs);
+  };
+
+  const handleData = (): void => {
+    lastInputAt = Date.now();
+    scheduleIdleWait();
+  };
+  input.on('data', handleData);
+
+  const waitForHandoff = (): Promise<void> =>
+    new Promise<void>((resolve) => {
+      if (disposed) {
+        resolve();
+        return;
+      }
+      resolveHandoff = resolve;
+      handoffImmediate = setImmediate(() => {
+        handoffImmediate = undefined;
+        resolveHandoff = undefined;
+        resolve();
+      });
+    });
+
+  const waitForIdle = (): Promise<void> => {
+    waitPromise ??= (async () => {
+      await waitForHandoff();
+      if (disposed) return;
+      await new Promise<void>((resolve) => {
+        resolveIdle = resolve;
+        scheduleIdleWait();
+      });
+    })();
+    return waitPromise;
+  };
+
+  const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
+    input.removeListener('data', handleData);
+    if (handoffImmediate !== undefined) {
+      clearImmediate(handoffImmediate);
+      handoffImmediate = undefined;
+    }
+    const handoffResolve = resolveHandoff;
+    resolveHandoff = undefined;
+    handoffResolve?.();
+    finishIdleWait();
+  };
+
+  return { waitForIdle, dispose };
 };
 
 export const preparePromptInput = (

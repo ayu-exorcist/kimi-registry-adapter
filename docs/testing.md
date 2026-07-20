@@ -118,6 +118,7 @@ When fixing behavior, prefer adding a test at the seam that observed the bug:
 - CLI argument/output bugs: `packages/cli/test/commands*.test.ts`
 - serve/update scheduling bugs: `packages/cli/test/server-runtime*.test.ts`
 - prompt flow bugs: the matching `interactive*.test.ts`
+- terminal lifecycle bugs: `packages/cli/test/prompt-input-session.test.ts` plus a Windows TTY smoke check for repeated loading/prompt transitions
 
 Keep fixtures in `packages/core/test/fixtures` when the payload is reusable. Avoid weakening assertions to match current broken behavior.
 

@@ -169,6 +169,7 @@ Provider 配置支持：
 - [发布与 npm 发布](./docs/release.md)
 - [测试与校验](./docs/testing.md)
 - [终端主题集成](./docs/terminal-theme.md)
+- [交互终端生命周期](./docs/interactive-terminal.md)
 
 ## 开发
 

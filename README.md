@@ -169,6 +169,7 @@ The generated JSON schema is stored in [`schemas/config.schema.json`](./schemas/
 - [Release and publishing](./docs/release.md)
 - [Testing and verification](./docs/testing.md)
 - [Terminal theme integration](./docs/terminal-theme.md)
+- [Interactive terminal lifecycle](./docs/interactive-terminal.md)
 
 ## Development
 

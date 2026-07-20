@@ -62,7 +62,12 @@ type PromptInputRouter = {
   handleData: (chunk: Buffer | string) => void;
 };
 
+type PromptInputSession = {
+  dispose: () => void;
+};
+
 let promptInputRouter: PromptInputRouter | undefined;
+let promptInputSession: PromptInputSession | undefined;
 
 export const setPromptRuntime = (runtime: Partial<PromptRuntime>): (() => void) => {
   const previous = promptRuntime;
@@ -112,6 +117,7 @@ export const disposePromptReadline = (): void => {
 
 export const exitPrompt = (): never => {
   disposePromptReadline();
+  disposePromptInputSession();
   promptOutput().write('\nBye!\n');
   return promptRuntime.exit(0);
 };
@@ -125,7 +131,10 @@ const inputSnapshot = (): Record<string, unknown> => {
     isTTY: input.isTTY,
     isPaused: typeof input.isPaused === 'function' ? input.isPaused() : undefined,
     isRaw: input.isRaw,
+    readableFlowing: input.readableFlowing,
+    dataListeners: input.listenerCount('data'),
     keypressListeners: promptKeyInput().listenerCount('keypress'),
+    inputSessionActive: promptInputSession !== undefined,
     rawModeLeaseCount,
   };
 };
@@ -165,6 +174,63 @@ const releaseRawMode = (): void => {
   logDebug('prompt.terminal', 'raw.release.after', inputSnapshot());
 };
 
+/**
+ * Own stdin routing and raw mode for the complete interactive CLI session.
+ * Individual prompts only attach their key handlers, so transitions between a
+ * prompt and a loading screen never leave the Windows TTY without a data
+ * consumer or rapidly toggle the console mode.
+ */
+export const installPromptInputSession = (): (() => void) => {
+  if (promptInputSession !== undefined) {
+    return (): void => {};
+  }
+
+  const input = promptInput();
+  let ownedRouter: PromptInputRouter | undefined;
+  if (promptInputRouter === undefined) {
+    const keyInput = new PassThrough();
+    const handleData = (chunk: Buffer | string): void => {
+      keyInput.write(chunk);
+    };
+    ownedRouter = { keyInput, handleData };
+    promptInputRouter = ownedRouter;
+    input.on('data', handleData);
+  }
+
+  let disposed = false;
+  const session: PromptInputSession = {
+    dispose: (): void => {
+      if (disposed || promptInputSession !== session) return;
+      disposed = true;
+      promptInputSession = undefined;
+      releaseRawMode();
+      if (ownedRouter !== undefined && promptInputRouter === ownedRouter) {
+        input.removeListener('data', ownedRouter.handleData);
+        promptInputRouter = undefined;
+        ownedRouter.keyInput.end();
+      }
+      logDebug('prompt.terminal', 'session.dispose', inputSnapshot());
+    },
+  };
+  promptInputSession = session;
+
+  try {
+    acquireRawMode();
+    input.resume();
+    promptKeyInput().resume();
+    logDebug('prompt.terminal', 'session.install', inputSnapshot());
+  } catch (error) {
+    session.dispose();
+    throw error;
+  }
+
+  return session.dispose;
+};
+
+export const disposePromptInputSession = (): void => {
+  promptInputSession?.dispose();
+};
+
 export const preparePromptInput = (
   readlineInterface: readline.Interface = sharedPromptReadline(),
 ): void => {
@@ -172,7 +238,9 @@ export const preparePromptInput = (
   const input = promptInput();
   const keyInput = promptKeyInput();
   logDebug('prompt.terminal', 'prepare.before', inputSnapshot());
-  acquireRawMode();
+  if (promptInputSession === undefined) {
+    acquireRawMode();
+  }
   const state = promptReadlineState();
   if (!state.keypressEventsPrepared) {
     readline.emitKeypressEvents(keyInput, readlineInterface);
@@ -308,7 +376,9 @@ export const createPromptCleanup = (options: PromptLifecycleOptions): (() => voi
     if (sigwinchHandler) {
       process.removeListener('SIGWINCH', sigwinchHandler);
     }
-    releaseRawMode();
+    if (promptInputSession === undefined) {
+      releaseRawMode();
+    }
     logDebug('prompt.terminal', 'cleanup.after', inputSnapshot());
   };
 };

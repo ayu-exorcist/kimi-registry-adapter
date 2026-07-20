@@ -53,6 +53,8 @@ The hidden default command starts interactive mode. Interactive mode requires bo
 
 Interactive add walks through provider ID, base URL, auth mode, provider type, model source, model inclusion, update mode, and whether to start the server. After a provider exists, the interactive update flow can change provider name, base URL, auth source, provider type, model source, included models, update mode, or refresh the registry.
 
+Interactive mode owns a stable stdin route and raw-mode lease for the complete wizard. Individual prompts own only their keypress and resize handlers; loading and prompt transitions do not reconfigure the physical TTY. Auto theme reports are filtered on this stable route, while fixed/custom themes use direct forwarding. See `docs/interactive-terminal.md` for lifecycle invariants and Windows regression coverage.
+
 ### HTTP Server
 
 `packages/cli/src/server/index.ts` builds a Hono app with these endpoints:

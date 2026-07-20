@@ -16,7 +16,7 @@ No KRA-specific theme file or command option is introduced. Kimi Code remains th
 
 ## Dynamic `auto` behavior
 
-For `auto`, KRA matches Kimi Code's runtime protocol:
+For `auto`, KRA matches Kimi Code's runtime protocol. Theme filtering is an optional transform on the same session-level input route used by fixed and custom themes; it does not own prompt or raw-mode lifetimes.
 
 - it enables terminal theme reporting (`CSI ? 2031 h`), sends the OSC 11 background query and the terminal-theme query;
 - it removes those terminal-control replies before they reach the prompt key parser;
@@ -30,3 +30,5 @@ The initial OSC 11 probe is capped at 250 ms and restores raw mode/listeners on 
 `ColorPalette` mirrors Kimi Code's semantic palette tokens. `ColorToken` prevents renderers from referencing an undefined color role. `ResolvedTheme` is the strict `'dark' | 'light'` result of terminal detection.
 
 Vitest coverage verifies built-in and custom palette resolution, invalid/missing config fallback, OSC 11 precedence, `COLORFGBG` fallback, color opt-out, fragmented terminal replies, and runtime input filtering/recoloring.
+
+Interactive stdin and raw mode are owned by the complete CLI session so prompt/loading transitions cannot deactivate the Windows console input channel. See [Interactive Terminal Lifecycle](./interactive-terminal.md) for the ownership and regression contract.

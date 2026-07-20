@@ -16,7 +16,7 @@ export interface LoadingIndicatorOptions {
 
 export const withLoadingIndicator = async <T>(
   message: string,
-  action: () => Promise<T>,
+  action: (signal: AbortSignal) => Promise<T>,
   options: LoadingIndicatorOptions = {},
 ): Promise<T> => {
   const { delayMs = 200 } = options;
@@ -25,9 +25,13 @@ export const withLoadingIndicator = async <T>(
   let timer: ReturnType<typeof setInterval> | undefined;
   let didRender = false;
   let didWarnAboutInterrupt = false;
+  const busyWarning = colorize('warning', 'Busy, finishing current operation...');
   const render = (): void => {
     didRender = true;
-    promptOutput().write(`\r${frames[frameIndex % frames.length]}  ${message}`);
+    const frame = `${frames[frameIndex % frames.length]}  ${message}`;
+    promptOutput().write(
+      didWarnAboutInterrupt ? `\u001B[1A\r\u001B[2K${frame}\u001B[1B\r` : `\r${frame}`,
+    );
     frameIndex += 1;
   };
 
@@ -36,20 +40,16 @@ export const withLoadingIndicator = async <T>(
       return;
     }
 
-    didWarnAboutInterrupt = true;
-    if (didRender) {
-      promptOutput().write(
-        `\r\u001B[2K${colorize('warning', 'Busy, finishing current operation...')}\n`,
-      );
+    if (!didRender) {
       render();
-      return;
     }
-
-    promptOutput().write(`${colorize('warning', 'Busy, finishing current operation...')}\n`);
+    didWarnAboutInterrupt = true;
+    promptOutput().write(`\n${busyWarning}`);
   };
 
   preparePromptInput();
   const inputBoundary = createPromptInputBoundary();
+  const controller = new AbortController();
   const keypressHandler = (_char: string, key: readline.Key): void => {
     if (!key) {
       return;
@@ -57,6 +57,9 @@ export const withLoadingIndicator = async <T>(
 
     if (key.ctrl && key.name === 'c') {
       showBusyWarning();
+      if (!controller.signal.aborted) {
+        controller.abort(new Error('Operation cancelled by user.'));
+      }
     }
   };
 
@@ -72,7 +75,7 @@ export const withLoadingIndicator = async <T>(
   }, delayMs);
 
   try {
-    return await action();
+    return await action(controller.signal);
   } finally {
     try {
       await inputBoundary.waitForIdle();
@@ -83,7 +86,9 @@ export const withLoadingIndicator = async <T>(
         clearInterval(timer);
       }
       cleanup();
-      if (didRender) {
+      if (didWarnAboutInterrupt) {
+        promptOutput().write('\r\u001B[2K\u001B[1A\r\u001B[2K');
+      } else if (didRender) {
         promptOutput().write('\r\u001B[2K');
       }
     }

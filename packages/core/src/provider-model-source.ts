@@ -6,7 +6,7 @@ import {
   assertOkResponse,
   createParseFetchError,
   KraFetchError,
-  fetchResponse,
+  fetchResponseBody,
   readJsonResponse,
   readTextResponse,
 } from './fetch-client';
@@ -65,15 +65,18 @@ const fetchEndpointModelsPayload = async (
 ): Promise<DiscoveredModel[]> => {
   const descriptor = getProviderDescriptor(providerType);
   throwIfAborted(signal);
-  const response = await fetchResponse(descriptor.defaultModelsUrl(baseUrl, modelsUrl), {
-    headers: descriptor.discovery.headers(apiKey),
-    operation: descriptor.discovery.operation,
-    ...(signal ? { signal } : {}),
-  });
-
-  assertOkResponse(response, 'Failed to fetch models');
-
-  const payload = await readJsonResponse<ModelsPayload>(response, descriptor.discovery.operation);
+  const payload = await fetchResponseBody(
+    descriptor.defaultModelsUrl(baseUrl, modelsUrl),
+    {
+      headers: descriptor.discovery.headers(apiKey),
+      operation: descriptor.discovery.operation,
+      ...(signal ? { signal } : {}),
+    },
+    async (response) => {
+      assertOkResponse(response, 'Failed to fetch models');
+      return readJsonResponse<ModelsPayload>(response, descriptor.discovery.operation);
+    },
+  );
   return parseDiscoveredModels(Array.isArray(payload) ? payload : (payload.data ?? []));
 };
 
@@ -106,27 +109,31 @@ const fetchRemoteModelsPayload = async (
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
-  const response = await fetchResponse(url, {
-    headers,
-    operation: 'Fetch remote models payload',
-    ...(signal ? { signal } : {}),
-  });
+  return fetchResponseBody(
+    url,
+    {
+      headers,
+      operation: 'Fetch remote models payload',
+      ...(signal ? { signal } : {}),
+    },
+    async (response) => {
+      assertOkResponse(response, 'Failed to fetch models');
 
-  assertOkResponse(response, 'Failed to fetch models');
-
-  try {
-    return readModelsPayloadContent(
-      await readTextResponse(response, 'Fetch remote models payload'),
-    );
-  } catch (error) {
-    if (error instanceof KraFetchError) {
-      throw error;
-    }
-    throw createParseFetchError('Fetch remote models payload failed: invalid models payload.', {
-      url: response.url,
-      cause: error,
-    });
-  }
+      try {
+        return readModelsPayloadContent(
+          await readTextResponse(response, 'Fetch remote models payload'),
+        );
+      } catch (error) {
+        if (error instanceof KraFetchError) {
+          throw error;
+        }
+        throw createParseFetchError('Fetch remote models payload failed: invalid models payload.', {
+          url: response.url,
+          cause: error,
+        });
+      }
+    },
+  );
 };
 
 export const fetchModelsPayload = fetchOpenAiModelsPayload;
@@ -254,14 +261,18 @@ export const resolveProviderModelSource = async ({
   throwIfAborted(signal);
   const resolvedApiKey =
     apiKey ?? resolveProviderApiKey(readAuthConfig(authPath), safeProviderId, provider.apiKeyEnv);
-  const sourceModels = models
-    ? parseDiscoveredModels(models)
-    : await runtime.fetchProviderModels(provider, safeProviderId, resolvedApiKey, signal);
-  throwIfAborted(signal);
-  const modelsMetadata = await runtime.readModelsMetadata(
+  const sourceModelsPromise = models
+    ? Promise.resolve(parseDiscoveredModels(models))
+    : runtime.fetchProviderModels(provider, safeProviderId, resolvedApiKey, signal);
+  const modelsMetadataPromise = runtime.readModelsMetadata(
     provider.modelsMetadataPath ?? DEFAULT_MODELS_METADATA_URL,
     signal,
   );
+  const [sourceModels, modelsMetadata] = await Promise.all([
+    sourceModelsPromise,
+    modelsMetadataPromise,
+  ]);
+  throwIfAborted(signal);
 
   return { sourceModels, modelsMetadata };
 };

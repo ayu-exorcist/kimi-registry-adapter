@@ -118,6 +118,8 @@ export const prepareProviderUpdate = async ({
   const updateRuntime = createUpdateRuntime(now, runtime);
   throwIfAborted(signal);
   const { safeProviderId, store, provider } = loadUpdateProviderState(stateDir, providerId);
+  // Validate the local baseline before starting remote discovery.
+  store.loadProviderState();
 
   const authSnapshot = authProviderSnapshot(store.paths.authPath, safeProviderId);
   const { sourceModels, modelsMetadata } = await resolveProviderModelSource({

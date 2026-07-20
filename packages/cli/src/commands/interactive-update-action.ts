@@ -151,10 +151,11 @@ const updateProviderModelsToExpose = async (options: {
   providerId: string;
   runtime: InteractiveUpdateProviderRuntime;
 }): Promise<ProviderActionResult> => {
-  const fetched = await options.runtime.withLoadingIndicator('Fetching models...', () =>
+  const fetched = await options.runtime.withLoadingIndicator('Fetching models...', (signal) =>
     options.runtime.fetchConfiguredProviderModels({
       stateDir: options.stateDir,
       providerId: options.providerId,
+      signal,
     }),
   );
   const modelIds = options.runtime.modelIdsFromPayload(fetched.models);
@@ -185,11 +186,12 @@ const updateProviderModelsToExpose = async (options: {
     include: selectedInclude.include,
   });
 
-  const result = await options.runtime.withLoadingIndicator('Updating provider...', () =>
+  const result = await options.runtime.withLoadingIndicator('Updating provider...', (signal) =>
     options.runtime.updateProviderOperation({
       stateDir: options.stateDir,
       providerId: options.providerId,
       models: fetched.models,
+      signal,
     }),
   );
 
@@ -213,10 +215,11 @@ const refreshProviderRegistry = async (options: {
   configPath?: string;
   runtime: InteractiveUpdateProviderRuntime;
 }): Promise<void> => {
-  const result = await options.runtime.withLoadingIndicator('Updating provider...', () =>
+  const result = await options.runtime.withLoadingIndicator('Updating provider...', (signal) =>
     options.runtime.updateProviderOperation({
       stateDir: options.stateDir,
       providerId: options.providerId,
+      signal,
     }),
   );
 

@@ -148,10 +148,11 @@ export const assertOkResponse = (response: Response, message: string): void => {
   }
 };
 
-export const fetchResponse = async (
+const fetchWithConsumer = async <T>(
   input: FetchInput,
-  options: KraFetchOptions = {},
-): Promise<Response> => {
+  options: KraFetchOptions,
+  consume: (response: Response) => Promise<T>,
+): Promise<T> => {
   const {
     operation = 'Network request',
     timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
@@ -200,14 +201,21 @@ export const fetchResponse = async (
         continue;
       }
 
+      const result = await consume(response);
       logger.debug('request.end', {
         attempt,
         status: response.status,
         durationMs: Date.now() - startedAt,
       });
-      return response;
+      return result;
     } catch (error) {
-      const fetchError = classifyFetchFailure(error, url, operation, timeout.didTimeout());
+      const fetchError = timeout.didTimeout()
+        ? classifyFetchFailure(error, url, operation, true)
+        : init.signal?.aborted
+          ? new KraFetchError('timeout', `${operation} was aborted.`, { url, cause: error })
+          : error instanceof KraFetchError
+            ? error
+            : classifyFetchFailure(error, url, operation, false);
       logger.warn('request.error', {
         attempt,
         kind: fetchError.kind,
@@ -215,7 +223,9 @@ export const fetchResponse = async (
         durationMs: Date.now() - startedAt,
       });
       lastError = fetchError;
-      if (attempt >= retryCount) {
+      const canRetry =
+        !init.signal?.aborted && (fetchError.kind === 'network' || fetchError.kind === 'timeout');
+      if (attempt >= retryCount || !canRetry) {
         throw fetchError;
       }
       logger.warn('request.retry', { attempt, retryDelayMs });
@@ -227,6 +237,17 @@ export const fetchResponse = async (
 
   throw lastError ?? new KraFetchError('network', `${operation} failed.`, { url });
 };
+
+export const fetchResponse = async (
+  input: FetchInput,
+  options: KraFetchOptions = {},
+): Promise<Response> => fetchWithConsumer(input, options, async (response) => response);
+
+export const fetchResponseBody = async <T>(
+  input: FetchInput,
+  options: KraFetchOptions,
+  consume: (response: Response) => Promise<T>,
+): Promise<T> => fetchWithConsumer(input, options, consume);
 
 export const readJsonResponse = async <T = unknown>(
   response: Response,

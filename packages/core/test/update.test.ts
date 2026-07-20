@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -150,6 +150,35 @@ describe('updateProvider', () => {
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('[kra:network] warn'));
 
     vi.unstubAllGlobals();
+  });
+
+  it('rejects an invalid local state before starting remote discovery', async () => {
+    const stateDir = createTempDir();
+    const configPath = join(stateDir, 'config.json');
+    const internalDir = join(stateDir, 'registries', 'provider', '.internal');
+    const fetchProviderModels = vi.fn().mockResolvedValue([{ id: 'gpt-4.1' }]);
+    const readModelsMetadata = vi.fn().mockResolvedValue({});
+    const config = addProviderToConfig(createDefaultConfig(), 'provider', {
+      name: 'Provider',
+      baseUrl: 'https://gateway.example.com/v1',
+      type: 'openai',
+    });
+    writeConfig(configPath, config);
+    mkdirSync(internalDir, { recursive: true });
+    writeFileSync(
+      join(internalDir, 'state.json'),
+      JSON.stringify({ lastGeneratedRegistry: {}, updateState: { lastUpdateStatus: 'ok' } }),
+    );
+
+    await expect(
+      updateProvider({
+        stateDir,
+        providerId: 'provider',
+        runtime: { fetchProviderModels, readModelsMetadata },
+      }),
+    ).rejects.toThrow(/Invalid provider update state/u);
+    expect(fetchProviderModels).not.toHaveBeenCalled();
+    expect(readModelsMetadata).not.toHaveBeenCalled();
   });
 
   it('does not write artifacts when an update signal is already aborted', async () => {

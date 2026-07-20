@@ -237,6 +237,7 @@ export const disposePromptInputSession = (): void => {
 };
 
 const PROMPT_INPUT_IDLE_MS = 500;
+const PROMPT_INPUT_MAX_WAIT_MS = 1_000;
 
 /**
  * Keep the current interaction active until filtered keyboard input is idle.
@@ -244,9 +245,10 @@ const PROMPT_INPUT_IDLE_MS = 500;
  * session-level stdin route or changing raw mode between interactions.
  */
 export const createPromptInputBoundary = (
-  options: { idleMs?: number } = {},
+  options: { idleMs?: number; maxWaitMs?: number } = {},
 ): PromptInputBoundary => {
   const idleMs = Math.max(0, options.idleMs ?? PROMPT_INPUT_IDLE_MS);
+  const maxWaitMs = Math.max(0, options.maxWaitMs ?? PROMPT_INPUT_MAX_WAIT_MS);
   const input = promptKeyInput();
   let disposed = false;
   let lastInputAt: number | undefined;
@@ -254,6 +256,7 @@ export const createPromptInputBoundary = (
   let resolveHandoff: (() => void) | undefined;
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
   let resolveIdle: (() => void) | undefined;
+  let waitStartedAt: number | undefined;
   let waitPromise: Promise<void> | undefined;
 
   const finishIdleWait = (): void => {
@@ -277,10 +280,14 @@ export const createPromptInputBoundary = (
       return;
     }
 
-    const remainingMs = Math.max(0, idleMs - (Date.now() - lastInputAt));
+    const now = Date.now();
+    const idleRemainingMs = Math.max(0, idleMs - (now - lastInputAt));
+    const maxRemainingMs = Math.max(0, maxWaitMs - (now - (waitStartedAt ?? now)));
+    const remainingMs = Math.min(idleRemainingMs, maxRemainingMs);
     idleTimer = setTimeout(() => {
       idleTimer = undefined;
-      if (lastInputAt !== undefined && Date.now() - lastInputAt < idleMs) {
+      const reachedMaxWait = waitStartedAt !== undefined && Date.now() - waitStartedAt >= maxWaitMs;
+      if (!reachedMaxWait && lastInputAt !== undefined && Date.now() - lastInputAt < idleMs) {
         scheduleIdleWait();
         return;
       }
@@ -312,6 +319,7 @@ export const createPromptInputBoundary = (
     waitPromise ??= (async () => {
       await waitForHandoff();
       if (disposed) return;
+      waitStartedAt = Date.now();
       await new Promise<void>((resolve) => {
         resolveIdle = resolve;
         scheduleIdleWait();

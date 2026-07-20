@@ -56,7 +56,7 @@ const fetchModelIdsWithFeedback = async (options: {
   apiKey?: string;
 }): Promise<InteractiveModelsResult> => {
   try {
-    const models = await withLoadingIndicator('Fetching models...', () =>
+    const models = await withLoadingIndicator('Fetching models...', (signal) =>
       fetchProviderModels(
         {
           name: 'preview',
@@ -66,6 +66,7 @@ const fetchModelIdsWithFeedback = async (options: {
         },
         'preview',
         options.apiKey,
+        signal,
       ),
     );
     const modelIds = modelIdsFromPayload(models);

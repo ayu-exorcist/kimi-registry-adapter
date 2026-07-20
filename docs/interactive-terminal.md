@@ -61,6 +61,9 @@ Automated tests must cover repeated `loading -> prompt` transitions through the 
 - input remains usable after repeated transitions;
 - loading input, including a terminal escape sequence split across chunks, cannot control the next prompt;
 - repeated input cannot cross the loading boundary when an action rejects and the interaction recovers;
+- loading input drain waits for a short idle period but has a fixed total wait bound;
+- the first `Ctrl+C` aborts the current loading action, and repeated interrupts do not extend cleanup indefinitely;
+- the busy warning renders below the animated operation line;
 - session shutdown removes its route and calls `setRawMode(false)` once.
 
 A release smoke test on Windows Terminal should also update a provider's selected model list repeatedly and verify that the returned provider menu accepts an arrow key immediately. In-memory `PassThrough` tests protect ownership and listener counts but cannot fully emulate the Windows console handle.

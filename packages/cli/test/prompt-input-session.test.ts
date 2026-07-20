@@ -182,6 +182,37 @@ describe('interactive prompt input session', () => {
     }
   });
 
+  it('bounds loading input drain time while keys continue arriving', async () => {
+    vi.useFakeTimers();
+    const { input } = createRawInput();
+    const restore = setPromptRuntime({ input, output: createOutput() });
+    let disposeSession: (() => void) | undefined;
+
+    try {
+      disposeSession = installPromptInputSession();
+      let settled = false;
+      const loading = withLoadingIndicator('Updating provider...', async () => undefined, {
+        delayMs: 2_000,
+      }).then(() => {
+        settled = true;
+      });
+
+      for (let delay = 100; delay <= 1_100; delay += 100) {
+        setTimeout(() => input.write(Buffer.from('x')), delay);
+      }
+
+      await vi.advanceTimersByTimeAsync(1_010);
+      expect(settled).toBe(true);
+      await loading;
+    } finally {
+      disposePromptReadline();
+      disposeSession?.();
+      disposePromptInputSession();
+      restore();
+      vi.useRealTimers();
+    }
+  });
+
   it('disposes the session idempotently', () => {
     const { input, setRawMode } = createRawInput();
     const restore = setPromptRuntime({ input, output: createOutput() });

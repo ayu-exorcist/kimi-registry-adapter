@@ -37,10 +37,11 @@ export const saveAndUpdateInteractiveProvider = async (options: {
   const runtime = { ...defaultRuntime, ...options.runtime };
   const state = options.state;
   const draft = providerSetupDraftFromInteractiveState(options.stateDir, state);
-  const result = await runtime.withLoadingIndicator('Updating registry...', () =>
+  const result = await runtime.withLoadingIndicator('Updating registry...', (signal) =>
     runtime.setupProviderOperation({
       ...providerSetupOperationInputFromDraft(draft),
       ...(state.authMode === 'store' ? { storeApiKey: true } : {}),
+      signal,
     }),
   );
 

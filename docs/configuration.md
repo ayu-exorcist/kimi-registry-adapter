@@ -177,7 +177,7 @@ Overrides are applied after source-field and metadata inference. `override.id` c
 
 ### Metadata Matching
 
-`modelsMetadataPath` may point to an HTTP(S) URL or a local JSON file. The default remote metadata URL is cached for a short period by source URL and fetch implementation; local metadata is cached by file mtime and size.
+`modelsMetadataPath` may point to an HTTP(S) URL or a local JSON file. The default `models.dev` metadata is cached for five minutes in memory and under `~/.kimi-registry-adapter/cache/` so separate CLI runs can reuse it; stale entries use ETag or Last-Modified conditional requests when the server provides those headers. Custom remote metadata stays in memory and is never persisted. Local metadata is cached by file mtime and size.
 
 Metadata entries can fill model name, family, limits, tool calling, reasoning, interleaved support, and modalities. Matching happens first by exact model ID, then by normalized ID. Normalization trims, lowercases, and removes one vendor prefix such as `vendor/model`. If more than one metadata key normalizes to the same ID, that normalized match is considered ambiguous and is not used.
 

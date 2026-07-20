@@ -9,7 +9,7 @@ export type PromptDriver = {
   inputPrompt: (options: InputPromptOptions) => Promise<string | symbol>;
   withLoadingIndicator: <T>(
     message: string,
-    action: () => Promise<T>,
+    action: (signal: AbortSignal) => Promise<T>,
     options?: LoadingIndicatorOptions,
   ) => Promise<T>;
   searchMultiselect: <T>(options: SearchMultiselectOptions<T>) => Promise<T[] | symbol>;
@@ -59,7 +59,7 @@ export const inputPrompt = async (options: InputPromptOptions): Promise<string |
 
 export const withLoadingIndicator = async <T>(
   message: string,
-  action: () => Promise<T>,
+  action: (signal: AbortSignal) => Promise<T>,
   options?: LoadingIndicatorOptions,
 ): Promise<T> => {
   return promptDriver.withLoadingIndicator(message, action, options);

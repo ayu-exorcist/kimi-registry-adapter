@@ -7,7 +7,7 @@ import { isFileNotFoundError } from './fs-error';
 import { serializeDeterministicJson } from './json';
 import type { DiscoveredModel } from './model-payload';
 import { normalizeProviderId, resolveProviderStatePath, resolveStatePath } from './provider-id';
-import type { MergeConflict } from './registry-merge';
+import type { MergeConflict, MergeConflictValue } from './registry-merge';
 import {
   validateEditableRegistry,
   validateGeneratedRegistry,
@@ -249,6 +249,14 @@ export const writeRegistryArtifacts = (
   return { generated, editable };
 };
 
+const isMergeConflictValue = (value: unknown): value is MergeConflictValue => {
+  if (!isUnknownRecord(value)) {
+    return false;
+  }
+
+  return value['kind'] === 'missing' || (value['kind'] === 'value' && 'value' in value);
+};
+
 const isMergeConflict = (value: unknown): value is MergeConflict => {
   if (!isUnknownRecord(value)) {
     return false;
@@ -258,10 +266,10 @@ const isMergeConflict = (value: unknown): value is MergeConflict => {
     typeof value['providerId'] === 'string' &&
     typeof value['modelId'] === 'string' &&
     typeof value['field'] === 'string' &&
-    'before' in value &&
-    'current' in value &&
-    'incoming' in value &&
-    'after' in value
+    isMergeConflictValue(value['before']) &&
+    isMergeConflictValue(value['current']) &&
+    isMergeConflictValue(value['incoming']) &&
+    isMergeConflictValue(value['after'])
   );
 };
 

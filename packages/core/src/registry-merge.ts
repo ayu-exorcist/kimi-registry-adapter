@@ -2,14 +2,21 @@ import { equalDeterministicJson } from './json';
 import type { EditableModel, EditableRegistry, GeneratedRegistry } from './schema';
 import { isUnknownRecord } from './type-guards';
 
+export type MergeConflictValue =
+  | { kind: 'missing' }
+  | {
+      kind: 'value';
+      value: unknown;
+    };
+
 export type MergeConflict = {
   providerId: string;
   modelId: string;
   field: string;
-  before: unknown;
-  current: unknown;
-  incoming: unknown;
-  after: unknown;
+  before: MergeConflictValue;
+  current: MergeConflictValue;
+  incoming: MergeConflictValue;
+  after: MergeConflictValue;
 };
 
 export type ThreeWayMergeInput = {
@@ -26,6 +33,9 @@ export type MergeEditableRegistryResult = {
 
 const equalJson = (left: unknown, right: unknown): boolean => equalDeterministicJson(left, right);
 
+export const createMergeConflictValue = (value: unknown): MergeConflictValue =>
+  value === undefined ? { kind: 'missing' } : { kind: 'value', value: structuredClone(value) };
+
 const mergeValue = (
   currentValue: unknown,
   oldValue: unknown,
@@ -37,6 +47,10 @@ const mergeValue = (
   }
 
   if (equalJson(newValue, oldValue)) {
+    return currentValue;
+  }
+
+  if (equalJson(currentValue, newValue)) {
     return currentValue;
   }
 
@@ -57,10 +71,10 @@ const mergeValue = (
     providerId: input.providerId,
     modelId: input.modelId,
     field: input.fieldPath.join('.'),
-    before: oldValue,
-    current: currentValue,
-    incoming: newValue,
-    after: currentValue,
+    before: createMergeConflictValue(oldValue),
+    current: createMergeConflictValue(currentValue),
+    incoming: createMergeConflictValue(newValue),
+    after: createMergeConflictValue(currentValue),
   });
 
   return currentValue;

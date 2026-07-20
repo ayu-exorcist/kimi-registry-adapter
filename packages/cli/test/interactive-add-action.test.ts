@@ -28,9 +28,12 @@ describe('interactive add provider action', () => {
       commit: 'abc123',
     });
     const loadingMessages: string[] = [];
-    const withLoadingIndicator = <T>(message: string, action: () => Promise<T>): Promise<T> => {
+    const withLoadingIndicator = <T>(
+      message: string,
+      action: (signal: AbortSignal) => Promise<T>,
+    ): Promise<T> => {
       loadingMessages.push(message);
-      return action();
+      return action(new AbortController().signal);
     };
 
     const result = await saveAndUpdateInteractiveProvider({
@@ -54,6 +57,7 @@ describe('interactive add provider action', () => {
       models: [{ id: 'model-a' }],
       updateMode: 'merge',
       storeApiKey: true,
+      signal: expect.any(AbortSignal),
     });
     expect(result).toEqual({
       configPath: '/state/config.json',

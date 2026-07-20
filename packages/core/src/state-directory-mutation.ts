@@ -14,6 +14,7 @@ import { isFileNotFoundError } from './fs-error';
 import { commitStateChangesAsync } from './git';
 import type { ProviderDefinitionInput } from './provider-definition';
 import { assertPathInside, normalizeProviderId, providerRegistryGitPath } from './provider-id';
+import type { MergeConflictValue } from './registry-merge';
 import { createStatePaths, type UpdateState } from './state';
 import type { UpdateMode } from './update';
 
@@ -80,7 +81,8 @@ export const readExistingOrDefaultConfig = (configPath: string): KraConfig => {
   }
 };
 
-const formatConflictValue = (value: unknown): string => JSON.stringify(value);
+const formatConflictValue = (value: MergeConflictValue): string =>
+  value.kind === 'missing' ? 'undefined' : (JSON.stringify(value.value) ?? 'undefined');
 
 const providerConfigPaths = ['config.json', '.gitignore'];
 

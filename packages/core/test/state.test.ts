@@ -148,6 +148,45 @@ describe('registry writes', () => {
 
     expect(() => loadProviderState(statePath)).toThrow(/Invalid provider update state/u);
   });
+
+  it('rejects conflicts that do not use the current JSON-safe value shape', () => {
+    const tempDir = createTempDir();
+    const statePath = join(tempDir, 'state.json');
+    const generated = {
+      provider: {
+        id: 'provider',
+        name: 'Provider',
+        api: 'https://gateway.example.com/v1',
+        type: 'openai',
+        models: { model: { id: 'model', name: 'Model', family: 'glm' } },
+      },
+    };
+    writeFileSync(
+      statePath,
+      JSON.stringify({
+        lastGeneratedRegistry: generated,
+        updateState: {
+          updatedAt: '2026-07-01T00:00:00.000Z',
+          lastUpdateStatus: 'ok',
+          warnings: [],
+          errors: [],
+          conflicts: [
+            {
+              providerId: 'provider',
+              modelId: 'model',
+              field: 'family',
+              current: 'glm',
+              incoming: 'glm',
+              after: 'glm',
+            },
+          ],
+        },
+      }),
+      'utf8',
+    );
+
+    expect(() => loadProviderState(statePath)).toThrow(/Invalid provider update state/u);
+  });
 });
 
 describe('mergeEditableRegistry', () => {
@@ -244,13 +283,79 @@ describe('mergeEditableRegistry', () => {
         providerId: 'provider',
         modelId: 'gpt-4.1',
         field: 'name',
-        before: 'gpt-4.1',
-        current: 'Manual Name',
-        incoming: 'Upstream Name',
-        after: 'Manual Name',
+        before: { kind: 'value', value: 'gpt-4.1' },
+        current: { kind: 'value', value: 'Manual Name' },
+        incoming: { kind: 'value', value: 'Upstream Name' },
+        after: { kind: 'value', value: 'Manual Name' },
       },
     ]);
   });
+  it('does not report a conflict when current and incoming independently added the same field', () => {
+    const provider = {
+      id: 'provider',
+      name: 'Provider',
+      api: 'https://gateway.example.com/v1',
+      type: 'openai' as const,
+    };
+    const oldGenerated = {
+      provider: { ...provider, models: { model: { id: 'model', name: 'Model' } } },
+    };
+    const currentEditable = {
+      provider: {
+        ...provider,
+        models: { model: { id: 'model', name: 'Model', family: 'glm' } },
+      },
+    };
+    const newGenerated = structuredClone(currentEditable);
+
+    const merged = mergeEditableRegistry({ oldGenerated, currentEditable, newGenerated });
+
+    expect(merged.conflicts).toEqual([]);
+    expect(merged.editable).toEqual(currentEditable);
+  });
+
+  it('round-trips a real conflict whose baseline field was missing', () => {
+    const tempDir = createTempDir();
+    const paths = {
+      apiPath: join(tempDir, 'api.json'),
+      statePath: join(tempDir, 'state.json'),
+    };
+    const provider = {
+      id: 'provider',
+      name: 'Provider',
+      api: 'https://gateway.example.com/v1',
+      type: 'openai' as const,
+    };
+    const oldGenerated = {
+      provider: { ...provider, models: { model: { id: 'model', name: 'Model' } } },
+    };
+    const currentEditable = {
+      provider: {
+        ...provider,
+        models: { model: { id: 'model', name: 'Model', family: 'local' } },
+      },
+    };
+    const newGenerated = {
+      provider: {
+        ...provider,
+        models: { model: { id: 'model', name: 'Model', family: 'upstream' } },
+      },
+    };
+    const merged = mergeEditableRegistry({ oldGenerated, currentEditable, newGenerated });
+    const updateState = {
+      updatedAt: '2026-07-01T00:00:00.000Z',
+      lastUpdateStatus: 'ok' as const,
+      warnings: [],
+      errors: [],
+      conflicts: merged.conflicts,
+    };
+
+    writeRegistryArtifacts(paths, newGenerated, merged.editable, updateState);
+
+    expect(merged.conflicts[0]?.before).toEqual({ kind: 'missing' });
+    expect(loadProviderState(paths.statePath)?.updateState).toEqual(updateState);
+  });
+
   it('can preserve locally added models that are absent from generated input', () => {
     const currentEditable = {
       provider: {
@@ -429,10 +534,10 @@ describe('mergeEditableRegistry', () => {
         providerId: 'provider',
         modelId: 'gpt-4.1',
         field: 'limit.context',
-        before: 131072,
-        current: 200000,
-        incoming: 262144,
-        after: 200000,
+        before: { kind: 'value', value: 131072 },
+        current: { kind: 'value', value: 200000 },
+        incoming: { kind: 'value', value: 262144 },
+        after: { kind: 'value', value: 200000 },
       },
     ]);
   });

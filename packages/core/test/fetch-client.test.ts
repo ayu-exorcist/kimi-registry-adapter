@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchResponse, KraFetchError, readJsonResponse } from '../src/internal';
+import { fetchResponse, fetchResponseBody, KraFetchError, readJsonResponse } from '../src/internal';
 
 describe('fetch client', () => {
   afterEach(() => {
@@ -81,6 +81,36 @@ describe('fetch client', () => {
         retry: { retries: 0 },
       }),
     ).rejects.toMatchObject({ kind: 'timeout' });
+  });
+
+  it('keeps the timeout active while consuming the response body', async () => {
+    const fetchMock = vi.fn((_url: string, init: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        url: 'https://example.test/slow-body',
+        body: null,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'));
+            });
+          }),
+      } as unknown as Response),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchResponseBody(
+        'https://example.test/slow-body',
+        {
+          operation: 'Fetch slow body',
+          timeoutMs: 5,
+          retry: { retries: 0 },
+        },
+        async (response) => readJsonResponse(response, 'Fetch slow body'),
+      ),
+    ).rejects.toMatchObject({ kind: 'timeout', message: 'Fetch slow body timed out.' });
   });
 
   it('classifies JSON parsing failures', async () => {

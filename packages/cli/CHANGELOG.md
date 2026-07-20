@@ -1,5 +1,13 @@
 # @kastral/kra
 
+## 1.0.2
+
+### Patch Changes
+
+- [`33e66c6`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/33e66c65a08705549ae40d610fc7e5ed4695e8bc) - Keep one terminal input route and raw-mode lease active for the complete interactive session so Windows prompts remain responsive after provider model updates and loading transitions.
+
+- [`ae70cfb`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/ae70cfb6052f4215044adb89fb279c4a840d12ec) - Discard keyboard input entered during loading before the next interactive prompt becomes active, while preserving the stable terminal input session on Windows.
+
 ## 1.0.1
 
 ### Patch Changes

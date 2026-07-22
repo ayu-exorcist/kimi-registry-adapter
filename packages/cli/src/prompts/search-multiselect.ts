@@ -3,9 +3,10 @@ import { stripVTControlCharacters } from 'node:util';
 
 import pc from 'picocolors';
 
-import { colorize, subscribeColorPalette } from '../theme';
+import { colorize } from '../theme';
 import {
   createPromptFinisher,
+  createPromptLifecycle,
   createPromptReadline,
   deletePreviousWord,
   finishPromptHome,
@@ -22,7 +23,7 @@ import {
 } from './prompt-core';
 import { FrameRenderer, terminalContentWidth, wrapPlainText } from './screen';
 import { formatShortcutHint } from './shortcut-hints';
-import { createPromptCleanup, promptKeyInput, subscribeTerminalResize } from './terminal-session';
+import { promptKeyInput, promptOutput } from './terminal-session';
 
 interface SearchItem<T> {
   value: T;
@@ -45,6 +46,7 @@ export interface SearchMultiselectOptions<T> {
 const S_BAR = promptSymbols.bar;
 
 const cancelSymbol = Symbol('cancel');
+const APP_HEADER_ROWS = 2;
 
 const wrapPromptText = (value: string): string[] =>
   wrapPlainText(value, terminalContentWidth(promptLinePrefix()));
@@ -143,14 +145,6 @@ export const searchMultiselect = async <T>(
       return selectAllItem === undefined ? regularFiltered : [selectAllItem, ...regularFiltered];
     };
 
-    const clearRender = (): void => {
-      frame.clear();
-    };
-
-    const resizeHandler = (): void => {
-      render();
-    };
-
     const renderSearchLines = (): string[] => {
       const searchPrefix = 'Search: ';
       const searchText = `${searchPrefix}${query}`;
@@ -175,6 +169,65 @@ export const searchMultiselect = async <T>(
       );
     };
 
+    const selectedLabels = (): string[] =>
+      items
+        .filter((item) => item.value !== selectAllValue && selected.has(item.value))
+        .map((item) => item.label);
+
+    const renderItemLines = (item: SearchItem<T>, actualIndex: number): string[] => {
+      const isSelected = selected.has(item.value);
+      const isCursor = actualIndex === cursor;
+      const checkbox = isSelected ? promptSymbols.checkboxActive : promptSymbols.checkboxInactive;
+      const prefix = isCursor ? '❯' : ' ';
+      const indent = ' '.repeat(item.indent ?? 0);
+      const itemPrefix = `${S_BAR} ${prefix} ${indent}${checkbox} `;
+      const itemContinuationPrefix = `│${' '.repeat(
+        Math.max(0, stripVTControlCharacters(itemPrefix).length - 1),
+      )}`;
+      const itemLabel =
+        selectAllValue !== undefined && item.value === selectAllValue && query
+          ? 'All matching'
+          : item.label;
+      const itemText = `${itemLabel}${item.hint ? ` (${item.hint})` : ''}`;
+
+      return wrapPlainText(itemText, terminalContentWidth(itemPrefix)).map((text, lineIndex) => {
+        const renderedText = lineIndex === 0 && isCursor ? pc.underline(text) : text;
+        return `${lineIndex === 0 ? itemPrefix : itemContinuationPrefix}${renderedText}`;
+      });
+    };
+
+    const renderActiveFooterLines = (): string[] => {
+      const footerLines = [`${S_BAR}`];
+      const labels = selectedLabels();
+      const allSelected =
+        !query &&
+        selectAllValue !== undefined &&
+        filteredRegularItems().length > 0 &&
+        filteredRegularItems().every((item) => selected.has(item.value));
+      if (labels.length === 0) {
+        footerLines.push(`${S_BAR}  ${pc.dim('Selected: (none)')}`);
+      } else if (allSelected) {
+        footerLines.push(`${S_BAR}  ${colorize('primary', 'Selected:')} All`);
+      } else {
+        const summary =
+          labels.length <= 3
+            ? labels.join(', ')
+            : `${labels.slice(0, 3).join(', ')} +${labels.length - 3} more`;
+        for (const line of wrapPromptText(`Selected: ${summary}`)) {
+          footerLines.push(
+            `${promptLinePrefix()}${line.replace(/^Selected:/u, colorize('primary', 'Selected:'))}`,
+          );
+        }
+      }
+      if (error) {
+        for (const line of wrapPromptText(error)) {
+          footerLines.push(`${promptLinePrefix()}${colorize('error', line)}`);
+        }
+      }
+      footerLines.push(`${pc.dim('╰')}`);
+      return footerLines;
+    };
+
     const render = (state: 'active' | 'submit' | 'cancel' = 'active'): void => {
       syncSelectAll();
       clearRender();
@@ -189,81 +242,46 @@ export const searchMultiselect = async <T>(
         );
         lines.push(...renderPromptHint(hint), `${S_BAR}`);
 
-        const { start: visibleStart, end: visibleEnd } = visibleWindow(
-          cursor,
-          filtered.length,
-          maxVisible,
-        );
-        const visibleItems = filtered.slice(visibleStart, visibleEnd);
+        const footerLines = renderActiveFooterLines();
+        const outputRows = promptOutput().rows;
+        const frameRowBudget =
+          outputRows && outputRows > APP_HEADER_ROWS
+            ? outputRows - APP_HEADER_ROWS
+            : Number.POSITIVE_INFINITY;
+        const itemRowBudget = Math.max(1, frameRowBudget - lines.length - footerLines.length);
 
         if (filtered.length === 0) {
           lines.push(`${S_BAR}  ${pc.dim('No matches found')}`);
         } else {
-          for (let i = 0; i < visibleItems.length; i += 1) {
-            const item = visibleItems[i];
-            if (!item) continue;
-            const actualIndex = visibleStart + i;
-            const isSelected = selected.has(item.value);
-            const isCursor = actualIndex === cursor;
-            const checkbox = isSelected
-              ? promptSymbols.checkboxActive
-              : promptSymbols.checkboxInactive;
-            const prefix = isCursor ? '❯' : ' ';
-            const indent = ' '.repeat(item.indent ?? 0);
-            const itemPrefix = `${S_BAR} ${prefix} ${indent}${checkbox} `;
-            const itemContinuationPrefix = `│${' '.repeat(
-              Math.max(0, stripVTControlCharacters(itemPrefix).length - 1),
-            )}`;
-            const itemLabel =
-              selectAllValue !== undefined && item.value === selectAllValue && query
-                ? 'All matching'
-                : item.label;
-            const itemText = `${itemLabel}${item.hint ? ` (${item.hint})` : ''}`;
-            const itemLines = wrapPlainText(itemText, terminalContentWidth(itemPrefix));
-            for (let lineIndex = 0; lineIndex < itemLines.length; lineIndex += 1) {
-              const text = itemLines[lineIndex];
-              if (text === undefined) continue;
-              const renderedText = lineIndex === 0 && isCursor ? pc.underline(text) : text;
-              lines.push(`${lineIndex === 0 ? itemPrefix : itemContinuationPrefix}${renderedText}`);
-            }
+          let visibleCount = Math.min(Math.max(1, maxVisible), filtered.length);
+          let visibleStart = 0;
+          let visibleEnd = 0;
+          let itemLines: string[] = [];
+          let hiddenLine: string | undefined;
+
+          const renderVisibleWindow = (): void => {
+            const visible = visibleWindow(cursor, filtered.length, visibleCount);
+            visibleStart = visible.start;
+            visibleEnd = visible.end;
+            itemLines = filtered
+              .slice(visibleStart, visibleEnd)
+              .flatMap((item, index) => renderItemLines(item, visibleStart + index));
+            hiddenLine = hiddenItemsLine(visibleStart, filtered.length - visibleEnd);
+          };
+
+          renderVisibleWindow();
+          while (visibleCount > 1 && itemLines.length + (hiddenLine ? 1 : 0) > itemRowBudget) {
+            visibleCount -= 1;
+            renderVisibleWindow();
           }
 
-          const hiddenLine = hiddenItemsLine(visibleStart, filtered.length - visibleEnd);
+          lines.push(...itemLines);
           if (hiddenLine) {
             lines.push(hiddenLine);
           }
         }
 
-        lines.push(`${S_BAR}`);
-        const selectedLabels = items
-          .filter((item) => item.value !== selectAllValue && selected.has(item.value))
-          .map((item) => item.label);
-        const allSelected =
-          !query &&
-          selectAllValue !== undefined &&
-          filteredRegularItems().length > 0 &&
-          filteredRegularItems().every((item) => selected.has(item.value));
-        if (selectedLabels.length === 0) {
-          lines.push(`${S_BAR}  ${pc.dim('Selected: (none)')}`);
-        } else if (allSelected) {
-          lines.push(`${S_BAR}  ${colorize('primary', 'Selected:')} All`);
-        } else {
-          const summary =
-            selectedLabels.length <= 3
-              ? selectedLabels.join(', ')
-              : `${selectedLabels.slice(0, 3).join(', ')} +${selectedLabels.length - 3} more`;
-          for (const line of wrapPromptText(`Selected: ${summary}`)) {
-            lines.push(
-              `${promptLinePrefix()}${line.replace(/^Selected:/u, colorize('primary', 'Selected:'))}`,
-            );
-          }
-        }
-        if (error) {
-          for (const line of wrapPromptText(error)) {
-            lines.push(`${promptLinePrefix()}${colorize('error', line)}`);
-          }
-        }
-        lines.push(`${pc.dim('╰')}`);
+        lines.push(...footerLines);
       } else if (state === 'submit') {
         const selectedLabels = items
           .filter((item) => item.value !== selectAllValue && selected.has(item.value))
@@ -278,18 +296,12 @@ export const searchMultiselect = async <T>(
       frame.render(lines);
     };
 
-    const resizeSubscription = subscribeTerminalResize(resizeHandler);
-
-    const cleanupPrompt = createPromptCleanup({
+    const { clearRender, redrawScreen, cleanup } = createPromptLifecycle({
       readlineInterface: rl,
+      frame,
+      render,
       keypressHandler: () => keypressHandler,
-      resizeSubscription,
     });
-    const unsubscribeTheme = subscribeColorPalette(render);
-    const cleanup = (): void => {
-      unsubscribeTheme();
-      cleanupPrompt();
-    };
 
     const submit = (): void => {
       if (required && selected.size === 0) {
@@ -472,6 +484,6 @@ export const searchMultiselect = async <T>(
     };
 
     promptKeyInput().on('keypress', keypressHandler);
-    render();
+    redrawScreen();
   });
 };

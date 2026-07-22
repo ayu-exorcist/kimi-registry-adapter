@@ -200,6 +200,58 @@ describe('prompt interactions', () => {
     await expect(resultPromise).resolves.toEqual(['gpt-a', 'gpt-b']);
   });
 
+  it('keeps multiselect redraws within the terminal viewport', async () => {
+    const output = new PassThrough() as unknown as typeof process.stdout;
+    Object.defineProperties(output, {
+      columns: { configurable: true, value: 80 },
+      rows: { configurable: true, value: 18 },
+      isTTY: { configurable: true, value: true },
+    });
+    const chunks: string[] = [];
+    output.on('data', (chunk: Buffer) => chunks.push(chunk.toString()));
+    const restore = setPromptRuntime({ output });
+
+    try {
+      const resultPromise = searchMultiselect({
+        message: 'Models to include',
+        items: Array.from({ length: 20 }, (_, index) => ({
+          value: `model-${String(index + 1)}`,
+          label: `Model ${String(index + 1)}`,
+        })),
+        maxVisible: 12,
+        clearOnExit: false,
+      });
+      await nextTick();
+
+      const initialFrames = chunks.filter((chunk) => chunk.includes('Models to include'));
+      expect(initialFrames).toHaveLength(1);
+      const initialFrame = initialFrames[0]!;
+      const frameCountBeforeResize = initialFrames.length;
+      Object.defineProperty(output, 'rows', { configurable: true, value: 13 });
+      output.emit('resize');
+      await nextTick();
+
+      for (let index = 0; index < 10; index += 1) {
+        emitKey('', { name: 'down' });
+      }
+      emitKey('', { name: 'return' });
+      await expect(resultPromise).resolves.toEqual([]);
+
+      const framesAfterResize = chunks
+        .filter((chunk) => chunk.includes('Models to include'))
+        .slice(frameCountBeforeResize);
+      expect(initialFrame).toContain('↓ 13 more');
+      expect(initialFrame.split('\n').length - 1).toBeLessThanOrEqual(16);
+      expect(chunks.filter((chunk) => chunk.includes('Kimi Registry Adapter')).length).toBe(2);
+      expect(framesAfterResize.length).toBeGreaterThan(2);
+      for (const frame of framesAfterResize) {
+        expect(frame.split('\n').length - 1).toBeLessThanOrEqual(11);
+      }
+    } finally {
+      restore();
+    }
+  });
+
   it('enforces required multiselect selection, then selects all visible items', async () => {
     let settled = false;
     const resultPromise = searchMultiselect({

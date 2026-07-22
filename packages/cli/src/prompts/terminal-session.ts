@@ -460,12 +460,15 @@ export const subscribeTerminalResize = (
   let disposed = false;
   const output = promptOutput();
   let lastColumns = output.columns ?? 80;
+  let lastRows = output.rows ?? 24;
 
   const notify = (): void => {
     if (disposed) return;
     const nextColumns = output.columns ?? 80;
-    if (nextColumns === lastColumns) return;
+    const nextRows = output.rows ?? 24;
+    if (nextColumns === lastColumns && nextRows === lastRows) return;
     lastColumns = nextColumns;
+    lastRows = nextRows;
     handler();
   };
 

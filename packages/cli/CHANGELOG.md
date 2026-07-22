@@ -1,5 +1,17 @@
 # @kastral/kra
 
+## 1.0.4
+
+### Patch Changes
+
+- [`e14eb85`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/e14eb8542ed8c4527d06a43375bdc796719da398) - Generate Kimi custom-registry thinking effort metadata from model sources, models.dev reasoning options, metadata files, and per-model overrides.
+
+- [`5f065e9`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/5f065e993c6dcd6531808b6010a047a380b5c8c4) - Harden provider and server lifecycles by rolling back partial setup or removal state, disposing scheduled updates and registry watchers reliably, reporting fatal bind errors directly, and consolidating terminal-session and diagnostics ownership.
+
+- [`7afec85`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/7afec85fb9885bf09ee2645cfc410123e05fcf04) - Simplify interactive provider setup and refreshes by always merging registry updates, preserving manual `api.json` edits while keeping overwrite available through explicit command options.
+
+- [`e639712`](https://github.com/ayu-exorcist/kimi-registry-adapter/commit/e639712e3667fa9bbd0b1ca50949f6b8c5f7b9f7) - Keep the searchable model selector within the live terminal viewport and redraw prompts when terminal height changes, preventing duplicated headers and clipped content.
+
 ## 1.0.3
 
 ### Patch Changes

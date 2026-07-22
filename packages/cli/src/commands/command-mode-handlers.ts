@@ -24,6 +24,7 @@ import {
   assertValidTcpPort,
   findAvailablePort,
   createServeUpdateTracker,
+  scheduleServeUpdates,
   startRegistryServerOnDemand,
   updateConfiguredProviders,
   waitForServerClose,
@@ -278,12 +279,6 @@ export const runServeCommand = async (
   });
 
   if (args.update !== false) await runUpdates();
-  if (updateIntervalMs !== undefined) {
-    process.stderr.write(`scheduled updates every ${args.updateInterval}\n`);
-    setInterval(() => {
-      void runUpdates();
-    }, updateIntervalMs);
-  }
   printServeStartupSummary(stateDir, host, `${port}`);
   const server = await startRegistryServerOnDemand({
     stateDir,
@@ -291,5 +286,14 @@ export const runServeCommand = async (
     port,
     updateHealth: updateTracker.health,
   });
-  await waitForServerClose(server);
+  const updateSchedule =
+    updateIntervalMs === undefined ? undefined : scheduleServeUpdates(runUpdates, updateIntervalMs);
+  if (updateSchedule) {
+    process.stderr.write(`scheduled updates every ${args.updateInterval}\n`);
+  }
+  try {
+    await waitForServerClose(server);
+  } finally {
+    updateSchedule?.dispose();
+  }
 };

@@ -121,7 +121,9 @@ KRA uses two lock scopes:
 
 `updateProviderOperation` persists a non-dry-run `--update-mode` under the global state lock before discovery, prepares discovery outside the provider lock, then applies the prepared result under the provider lock. During apply, it re-reads provider config and provider auth snapshots; if either changed during discovery, the update aborts and asks the caller to retry.
 
-Registry writes use temporary files plus `write-transaction.json` so a later run can recover from a partial write. Config and auth writes are atomic text writes. Lock directories contain owner metadata and stale lock handling; locks coordinate KRA processes on one local host/state directory, not arbitrary external writers. Operational timeout, stale-lock, and interrupted-write recovery guidance is in `docs/operations.md`.
+Registry writes use temporary files plus `write-transaction.json` so a later run can recover from a partial write. Config and auth writes are atomic text writes. Provider setup snapshots config/auth and restores them when discovery fails, provided neither file changed after the setup checkpoint. Provider removal stages the registry directory with an atomic rename and restores it together with config/auth when removal cannot complete. A rollback refuses to overwrite concurrent external state changes.
+
+Lock directories contain owner metadata and stale lock handling; locks coordinate KRA processes on one local host/state directory, not arbitrary external writers. Operational timeout, stale-lock, and interrupted-write recovery guidance is in `docs/operations.md`.
 
 ## Code Consistency Check
 

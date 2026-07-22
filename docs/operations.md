@@ -129,7 +129,7 @@ The default active log path is `~/.kimi-registry-adapter/logs/kra-debug.log`. Pa
 
 **The requested port changes**
 
-KRA deliberately selects the next available port. Use the port printed at startup and update the imported Kimi URL or remove the conflicting listener. Do not assume the requested port was retained.
+KRA deliberately selects the next available port when binding fails with `EADDRINUSE`. Use the port printed at startup and update the imported Kimi URL or remove the conflicting listener. Invalid hosts, permission failures, and other fatal listen errors are reported immediately instead of being treated as occupied ports.
 
 **A state lock times out**
 
@@ -138,6 +138,8 @@ Global and provider locks are directories at `.kra.lock` and `.kra.locks/<provid
 **A process stops during a registry write**
 
 Registry writes stage temporary files and a `.internal/write-transaction.json` manifest. A later state load/write attempts to finish a valid interrupted transaction. Preserve the provider directory for recovery; do not delete `.internal/` as routine cleanup.
+
+Setup and removal also use in-process compensation. Failed setup restores its config/auth snapshot when it is still safe to do so. Removal temporarily renames the provider directory and restores it with config/auth if the operation fails. These compensations protect handled runtime failures; they do not replace the registry manifest's crash-recovery role.
 
 ### Security And Backup Boundaries
 

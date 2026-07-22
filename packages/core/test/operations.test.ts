@@ -569,6 +569,31 @@ describe('core operations', () => {
     });
   });
 
+  it('rolls back provider config and auth when setup discovery fails', async () => {
+    const stateDir = createStateDir();
+
+    await expect(
+      setupProviderOperation({
+        stateDir,
+        providerId: 'provider-a',
+        baseUrl: 'https://api.example.com/v1',
+        type: 'openai_responses',
+        apiKey: 'secret-key',
+        storeApiKey: true,
+        runtime: {
+          fetchProviderModels: async () => {
+            throw new Error('model discovery failed');
+          },
+          readModelsMetadata: async () => ({}),
+        },
+      }),
+    ).rejects.toThrow('model discovery failed');
+
+    expect(existsSync(join(stateDir, 'config.json'))).toBe(false);
+    expect(existsSync(join(stateDir, 'auth.json'))).toBe(false);
+    expect(existsSync(join(stateDir, 'registries', 'provider-a'))).toBe(false);
+  });
+
   it('sets up a provider with stored auth and caller-supplied models', async () => {
     const stateDir = createStateDir();
     const fetchProviderModels = vi.fn().mockRejectedValue(new Error('should not fetch models'));
@@ -717,6 +742,34 @@ describe('core operations', () => {
     expect(
       JSON.parse(readFileSync(join(stateDir, 'auth.json'), 'utf8')).providers['provider-a'],
     ).toBeUndefined();
+  });
+
+  it('restores provider state when removal fails before it can be committed', async () => {
+    const stateDir = createStateDir();
+    await saveProvider({
+      stateDir,
+      providerId: 'provider-a',
+      baseUrl: 'https://api.example.com/v1',
+      type: 'openai_responses',
+    });
+    writeFileSync(
+      join(stateDir, 'auth.json'),
+      `${JSON.stringify({ providers: { 'provider-a': { apiKeyEnv: 'PROVIDER_A_KEY' } } })}\n`,
+    );
+    const providerDir = join(stateDir, 'registries', 'provider-a');
+    mkdirSync(providerDir, { recursive: true });
+    writeFileSync(join(providerDir, 'api.json'), '{}\n');
+    writeFileSync(join(stateDir, '.git'), 'not a git repository');
+
+    await expect(removeProvider({ stateDir, providerId: 'provider-a' })).rejects.toThrow(
+      /git|repository/iu,
+    );
+
+    expect(readConfig(join(stateDir, 'config.json')).providers['provider-a']).toBeDefined();
+    expect(readAuthConfig(join(stateDir, 'auth.json')).providers['provider-a']).toEqual({
+      apiKeyEnv: 'PROVIDER_A_KEY',
+    });
+    expect(existsSync(join(providerDir, 'api.json'))).toBe(true);
   });
 
   it('removes a local-only registry without a configured provider', async () => {

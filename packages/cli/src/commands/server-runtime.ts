@@ -34,14 +34,31 @@ export const assertValidTcpPort = (port: number, name = 'port'): number => {
   return port;
 };
 
+const errorCode = (error: unknown): string | undefined =>
+  typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : undefined;
+
+const isAddressInUseError = (error: unknown): boolean => errorCode(error) === 'EADDRINUSE';
+
 export const findAvailablePort = async (host: string, startPort: number): Promise<number> => {
   assertValidTcpPort(startPort);
   const canListen = (port: number): Promise<boolean> =>
-    new Promise((resolvePromise) => {
+    new Promise((resolvePromise, reject) => {
       const server = createServer();
-      server.once('error', () => resolvePromise(false));
+      server.once('error', (error) => {
+        if (isAddressInUseError(error)) {
+          resolvePromise(false);
+          return;
+        }
+        reject(error);
+      });
       server.once('listening', () => {
-        server.close(() => resolvePromise(true));
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolvePromise(true);
+        });
       });
       server.listen(port, host);
     });
@@ -53,6 +70,23 @@ export const findAvailablePort = async (host: string, startPort: number): Promis
   }
 
   return port;
+};
+
+export type ServeUpdateSchedule = {
+  dispose: () => void;
+};
+
+export const scheduleServeUpdates = (
+  runUpdates: () => Promise<void>,
+  intervalMs: number,
+): ServeUpdateSchedule => {
+  const timer = setInterval(() => {
+    void runUpdates();
+  }, intervalMs);
+
+  return {
+    dispose: () => clearInterval(timer),
+  };
 };
 
 export const startRegistryServerOnDemand = async (options: {

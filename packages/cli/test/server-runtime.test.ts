@@ -1,12 +1,17 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import type { AddressInfo } from 'node:net';
+import { createServer, type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { waitForServerClose, type RegistryServer } from '../src/commands/server-runtime';
+import {
+  findAvailablePort,
+  scheduleServeUpdates,
+  waitForServerClose,
+  type RegistryServer,
+} from '../src/commands/server-runtime';
 import { interactiveHomeSymbol } from '../src/prompts/navigation';
 import { setPromptRuntime } from '../src/prompts/terminal-session';
 import { createHealthSnapshot, createRegistryRuntime, startRegistryServer } from '../src/server';
@@ -79,6 +84,42 @@ const createCapturedStdout = (): {
 };
 
 describe('registry runtime', () => {
+  it('only advances to another port when the requested port is already in use', async () => {
+    const occupied = createServer();
+    await new Promise<void>((resolvePromise) => occupied.listen(0, '127.0.0.1', resolvePromise));
+    const occupiedPort = expectTcpAddress(occupied.address()).port;
+
+    try {
+      await expect(findAvailablePort('127.0.0.1', occupiedPort)).resolves.toBeGreaterThan(
+        occupiedPort,
+      );
+    } finally {
+      await new Promise<void>((resolvePromise) => occupied.close(() => resolvePromise()));
+    }
+  });
+
+  it('preserves fatal listen errors instead of reporting them as port exhaustion', async () => {
+    await expect(findAvailablePort('not-a-valid-host.invalid', 65_535)).rejects.not.toThrow(
+      'Invalid port',
+    );
+  });
+
+  it('disposes scheduled provider updates with the serve lifecycle', async () => {
+    vi.useFakeTimers();
+    const runUpdates = vi.fn(async () => undefined);
+    const schedule = scheduleServeUpdates(runUpdates, 1_000);
+
+    try {
+      await vi.advanceTimersByTimeAsync(2_500);
+      expect(runUpdates).toHaveBeenCalledTimes(2);
+      schedule.dispose();
+      await vi.advanceTimersByTimeAsync(2_500);
+      expect(runUpdates).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('loads, serves, and removes editable registries through one runtime seam', async () => {
     const stateDir = createStateDir();
     const registryPath = writeRegistry(stateDir, 'provider-a');

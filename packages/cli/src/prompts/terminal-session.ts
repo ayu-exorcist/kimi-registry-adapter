@@ -43,25 +43,6 @@ type PromptReadlineState = {
   keypressEventsPrepared: boolean;
 };
 
-const promptReadlineStateSymbol = Symbol.for('kimi-registry-adapter.promptReadlineState');
-
-const promptReadlineState = (): PromptReadlineState => {
-  const globalScope = globalThis as typeof globalThis & {
-    [promptReadlineStateSymbol]?: PromptReadlineState;
-  };
-  globalScope[promptReadlineStateSymbol] ??= {
-    readlineInterface: undefined,
-    keypressEventsPrepared: false,
-  };
-  return globalScope[promptReadlineStateSymbol] as PromptReadlineState;
-};
-
-let promptRuntime: PromptRuntime = {
-  input: process.stdin,
-  output: process.stdout,
-  exit: (code = 0) => process.exit(code),
-};
-
 type PromptInputRouter = {
   keyInput: PassThrough;
   handleData: (chunk: Buffer | string) => void;
@@ -71,24 +52,58 @@ type PromptInputSession = {
   dispose: () => void;
 };
 
-let promptInputRouter: PromptInputRouter | undefined;
-let promptInputSession: PromptInputSession | undefined;
-
-export const setPromptRuntime = (runtime: Partial<PromptRuntime>): (() => void) => {
-  const previous = promptRuntime;
-  promptRuntime = { ...promptRuntime, ...runtime };
-  return () => {
-    promptRuntime = previous;
+export class TerminalSession {
+  runtime: PromptRuntime;
+  readonly readlineState: PromptReadlineState = {
+    readlineInterface: undefined,
+    keypressEventsPrepared: false,
   };
-};
+  inputRouter: PromptInputRouter | undefined;
+  inputSession: PromptInputSession | undefined;
+  rawModeLeaseCount = 0;
+  rawDataObserverInstalled = false;
 
-export const promptInput = (): typeof process.stdin => promptRuntime.input;
+  constructor(runtime: Partial<PromptRuntime> = {}) {
+    this.runtime = {
+      input: process.stdin,
+      output: process.stdout,
+      exit: (code = 0) => process.exit(code),
+      ...runtime,
+    };
+  }
+
+  setRuntime(runtime: Partial<PromptRuntime>): () => void {
+    const previous = this.runtime;
+    this.runtime = { ...this.runtime, ...runtime };
+    return () => {
+      this.runtime = previous;
+    };
+  }
+
+  input(): typeof process.stdin {
+    return this.runtime.input;
+  }
+
+  keyInput(): typeof process.stdin {
+    return (this.inputRouter?.keyInput ?? this.runtime.input) as typeof process.stdin;
+  }
+
+  output(): typeof process.stdout {
+    return this.runtime.output;
+  }
+}
+
+const terminalSession = new TerminalSession();
+
+export const setPromptRuntime = (runtime: Partial<PromptRuntime>): (() => void) =>
+  terminalSession.setRuntime(runtime);
+
+export const promptInput = (): typeof process.stdin => terminalSession.input();
 
 /** Input after terminal-control reports have been removed, when tracking is active. */
-export const promptKeyInput = (): typeof process.stdin =>
-  (promptInputRouter?.keyInput ?? promptRuntime.input) as typeof process.stdin;
+export const promptKeyInput = (): typeof process.stdin => terminalSession.keyInput();
 
-export const promptOutput = (): typeof process.stdout => promptRuntime.output;
+export const promptOutput = (): typeof process.stdout => terminalSession.output();
 
 const silentOutput = new Writable({
   write(_chunk, _encoding, callback) {
@@ -97,7 +112,7 @@ const silentOutput = new Writable({
 });
 
 export const sharedPromptReadline = (): readline.Interface => {
-  const state = promptReadlineState();
+  const state = terminalSession.readlineState;
   if (!state.readlineInterface) {
     const input = promptKeyInput();
     input.setMaxListeners(Math.max(input.getMaxListeners(), 50));
@@ -112,7 +127,7 @@ export const sharedPromptReadline = (): readline.Interface => {
 };
 
 export const disposePromptReadline = (): void => {
-  const state = promptReadlineState();
+  const state = terminalSession.readlineState;
   if (!state.readlineInterface) return;
   logDebug('prompt.terminal', 'readline.dispose');
   state.readlineInterface.close();
@@ -124,11 +139,8 @@ export const exitPrompt = (): never => {
   disposePromptReadline();
   disposePromptInputSession();
   promptOutput().write('\nBye!\n');
-  return promptRuntime.exit(0);
+  return terminalSession.runtime.exit(0);
 };
-
-let rawModeLeaseCount = 0;
-let rawDataObserverInstalled = false;
 
 const inputSnapshot = (): Record<string, unknown> => {
   const input = promptInput();
@@ -139,14 +151,14 @@ const inputSnapshot = (): Record<string, unknown> => {
     readableFlowing: input.readableFlowing,
     dataListeners: input.listenerCount('data'),
     keypressListeners: promptKeyInput().listenerCount('keypress'),
-    inputSessionActive: promptInputSession !== undefined,
-    rawModeLeaseCount,
+    inputSessionActive: terminalSession.inputSession !== undefined,
+    rawModeLeaseCount: terminalSession.rawModeLeaseCount,
   };
 };
 
 const installRawDataObserver = (): void => {
-  if (rawDataObserverInstalled || process.env['KRA_LOG'] !== '1') return;
-  rawDataObserverInstalled = true;
+  if (terminalSession.rawDataObserverInstalled || process.env['KRA_LOG'] !== '1') return;
+  terminalSession.rawDataObserverInstalled = true;
   promptInput().on('data', (chunk: Buffer | string) => {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     logDebug('prompt.terminal', 'stdin.data', {
@@ -161,19 +173,19 @@ const acquireRawMode = (): void => {
   const input = promptInput();
   logDebug('prompt.terminal', 'raw.acquire.before', inputSnapshot());
   if (!input.isTTY) return;
-  if (rawModeLeaseCount === 0) {
+  if (terminalSession.rawModeLeaseCount === 0) {
     input.setRawMode(true);
   }
-  rawModeLeaseCount += 1;
+  terminalSession.rawModeLeaseCount += 1;
   logDebug('prompt.terminal', 'raw.acquire.after', inputSnapshot());
 };
 
 const releaseRawMode = (): void => {
   const input = promptInput();
   logDebug('prompt.terminal', 'raw.release.before', inputSnapshot());
-  if (!input.isTTY || rawModeLeaseCount === 0) return;
-  rawModeLeaseCount -= 1;
-  if (rawModeLeaseCount === 0) {
+  if (!input.isTTY || terminalSession.rawModeLeaseCount === 0) return;
+  terminalSession.rawModeLeaseCount -= 1;
+  if (terminalSession.rawModeLeaseCount === 0) {
     input.setRawMode(false);
   }
   logDebug('prompt.terminal', 'raw.release.after', inputSnapshot());
@@ -186,38 +198,38 @@ const releaseRawMode = (): void => {
  * consumer or rapidly toggle the console mode.
  */
 export const installPromptInputSession = (): (() => void) => {
-  if (promptInputSession !== undefined) {
+  if (terminalSession.inputSession !== undefined) {
     return (): void => {};
   }
 
   const input = promptInput();
   let ownedRouter: PromptInputRouter | undefined;
-  if (promptInputRouter === undefined) {
+  if (terminalSession.inputRouter === undefined) {
     const keyInput = new PassThrough();
     const handleData = (chunk: Buffer | string): void => {
       keyInput.write(chunk);
     };
     ownedRouter = { keyInput, handleData };
-    promptInputRouter = ownedRouter;
+    terminalSession.inputRouter = ownedRouter;
     input.on('data', handleData);
   }
 
   let disposed = false;
   const session: PromptInputSession = {
     dispose: (): void => {
-      if (disposed || promptInputSession !== session) return;
+      if (disposed || terminalSession.inputSession !== session) return;
       disposed = true;
-      promptInputSession = undefined;
+      terminalSession.inputSession = undefined;
       releaseRawMode();
-      if (ownedRouter !== undefined && promptInputRouter === ownedRouter) {
+      if (ownedRouter !== undefined && terminalSession.inputRouter === ownedRouter) {
         input.removeListener('data', ownedRouter.handleData);
-        promptInputRouter = undefined;
+        terminalSession.inputRouter = undefined;
         ownedRouter.keyInput.end();
       }
       logDebug('prompt.terminal', 'session.dispose', inputSnapshot());
     },
   };
-  promptInputSession = session;
+  terminalSession.inputSession = session;
 
   try {
     acquireRawMode();
@@ -233,7 +245,7 @@ export const installPromptInputSession = (): (() => void) => {
 };
 
 export const disposePromptInputSession = (): void => {
-  promptInputSession?.dispose();
+  terminalSession.inputSession?.dispose();
 };
 
 const PROMPT_INPUT_IDLE_MS = 500;
@@ -352,10 +364,10 @@ export const preparePromptInput = (
   const input = promptInput();
   const keyInput = promptKeyInput();
   logDebug('prompt.terminal', 'prepare.before', inputSnapshot());
-  if (promptInputSession === undefined) {
+  if (terminalSession.inputSession === undefined) {
     acquireRawMode();
   }
-  const state = promptReadlineState();
+  const state = terminalSession.readlineState;
   if (!state.keypressEventsPrepared) {
     readline.emitKeypressEvents(keyInput, readlineInterface);
     state.keypressEventsPrepared = true;
@@ -374,7 +386,7 @@ export const installTerminalThemeTracking = (
 ): (() => void) => {
   const input = promptInput();
   const output = promptOutput();
-  if (!input.isTTY || !output.isTTY || promptInputRouter !== undefined) {
+  if (!input.isTTY || !output.isTTY || terminalSession.inputRouter !== undefined) {
     return (): void => {};
   }
 
@@ -413,7 +425,7 @@ export const installTerminalThemeTracking = (
     }
   };
   const router: PromptInputRouter = { keyInput, handleData };
-  promptInputRouter = router;
+  terminalSession.inputRouter = router;
   input.on('data', handleData);
   input.resume();
 
@@ -426,11 +438,11 @@ export const installTerminalThemeTracking = (
   }
 
   return (): void => {
-    if (promptInputRouter !== router) return;
+    if (terminalSession.inputRouter !== router) return;
     input.removeListener('data', handleData);
     clearOsc11BufferTimer();
     inputState.osc11Buffer = '';
-    promptInputRouter = undefined;
+    terminalSession.inputRouter = undefined;
     keyInput.end();
     try {
       output.write(DISABLE_TERMINAL_THEME_REPORTING);
@@ -490,7 +502,7 @@ export const createPromptCleanup = (options: PromptLifecycleOptions): (() => voi
     if (sigwinchHandler) {
       process.removeListener('SIGWINCH', sigwinchHandler);
     }
-    if (promptInputSession === undefined) {
+    if (terminalSession.inputSession === undefined) {
       releaseRawMode();
     }
     logDebug('prompt.terminal', 'cleanup.after', inputSnapshot());

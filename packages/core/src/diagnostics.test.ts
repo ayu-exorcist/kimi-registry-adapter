@@ -40,6 +40,7 @@ describe('diagnostics', () => {
       {
         event: 'request',
         data: { token: 'secret-token', nested: { apiKey: 'secret-key', keep: 'value' } },
+        error: new Error('request failed'),
       },
       { KRA_LOG: '1' },
     );
@@ -48,8 +49,10 @@ describe('diagnostics', () => {
     const record = JSON.parse(log) as {
       event: string;
       data: { token: string; nested: { apiKey: string; keep: string } };
+      error: { name: string; message: string };
     };
     expect(record.event).toBe('request');
+    expect(record.error).toMatchObject({ name: 'Error', message: 'request failed' });
     expect(record.data.token).toBe('[REDACTED]');
     expect(record.data.nested.apiKey).toBe('[REDACTED]');
     expect(record.data.nested.keep).toBe('value');

@@ -208,6 +208,23 @@ const watchRegistries = async (stateDir: string, runtime: RegistryRuntime): Prom
   return watcher;
 };
 
+const asError = (error: unknown): Error =>
+  error instanceof Error
+    ? error
+    : new Error('Unknown registry watcher close error.', { cause: error });
+
+const combineCloseErrors = (
+  serverError: Error | undefined,
+  watcherError: unknown,
+): Error | undefined => {
+  if (!watcherError) return serverError;
+  if (!serverError) return asError(watcherError);
+  return new AggregateError(
+    [serverError, watcherError],
+    'Failed to close registry server cleanly.',
+  );
+};
+
 export const startRegistryServer = async ({
   stateDir,
   host,
@@ -218,21 +235,68 @@ export const startRegistryServer = async ({
   const watcher = await watchRegistries(stateDir, runtime);
 
   return new Promise<ServerType>((resolvePromise, reject) => {
-    const server = serve(
-      {
-        fetch: runtime.app.fetch,
-        hostname: host,
-        port,
-      },
-      () => resolvePromise(server),
-    );
+    let watcherClosePromise: Promise<void> | undefined;
+    const closeWatcher = (): Promise<void> => {
+      watcherClosePromise ??= watcher.close();
+      return watcherClosePromise;
+    };
+    let server: ServerType;
+    try {
+      server = serve(
+        {
+          fetch: runtime.app.fetch,
+          hostname: host,
+          port,
+        },
+        () => resolvePromise(server),
+      );
+    } catch (error) {
+      void (async () => {
+        try {
+          await closeWatcher();
+          reject(error);
+        } catch (watcherError) {
+          reject(
+            new AggregateError(
+              [error, watcherError],
+              'Failed to start registry server and close its watcher.',
+              { cause: error },
+            ),
+          );
+        }
+      })();
+      return;
+    }
     const originalClose = server.close.bind(server);
+    const closeServerAndWatcher = async (
+      callback: Parameters<typeof server.close>[0],
+    ): Promise<void> => {
+      let watcherError: unknown;
+      try {
+        await closeWatcher();
+      } catch (error) {
+        watcherError = error;
+      }
+      originalClose((serverError) => callback?.(combineCloseErrors(serverError, watcherError)));
+    };
     server.close = ((callback?: Parameters<typeof server.close>[0]) => {
-      void watcher.close().finally(() => {
-        originalClose(callback);
-      });
+      void closeServerAndWatcher(callback);
       return server;
     }) as typeof server.close;
-    server.once('error', reject);
+    const handleServerError = async (error: Error): Promise<void> => {
+      try {
+        await closeWatcher();
+        reject(error);
+      } catch (watcherError) {
+        reject(
+          new AggregateError(
+            [error, watcherError],
+            'Registry server failed and its watcher could not be closed.',
+            { cause: error },
+          ),
+        );
+      }
+    };
+    server.once('error', handleServerError);
   });
 };

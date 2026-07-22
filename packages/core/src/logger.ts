@@ -19,13 +19,14 @@ const levels: Record<DiagnosticLogLevel, number> = {
   error: 40,
 };
 
-const sensitiveKeyPattern = /api[-_]?key|authorization|token|password|secret|credential/iu;
+const sensitiveKeyPattern =
+  /authorization|api[-_]?key|token|password|secret|cookie|credential|access[-_]?token|refresh[-_]?token/iu;
 
 let diagnosticsOptions: DiagnosticsOptions = {};
 let runId: string = randomUUID();
 
-export const configureDiagnostics = (options: DiagnosticsOptions): void => {
-  diagnosticsOptions = { ...diagnosticsOptions, ...options };
+export const configureDiagnostics = (options: DiagnosticsOptions = {}): void => {
+  diagnosticsOptions = { ...options };
   if (options.runId) {
     runId = options.runId;
   }
@@ -33,8 +34,8 @@ export const configureDiagnostics = (options: DiagnosticsOptions): void => {
 
 export const diagnosticsRunId = (): string => runId;
 
-export const isDiagnosticsEnabled = (): boolean =>
-  process.env['KRA_LOG'] === '1' || process.env['KRA_DEBUG'] === '1';
+export const isDiagnosticsEnabled = (env: NodeJS.ProcessEnv = process.env): boolean =>
+  env['KRA_LOG'] === '1' || env['KRA_DEBUG'] === '1';
 
 const configuredLevel = (): DiagnosticLogLevel => {
   const value = process.env['KRA_LOG_LEVEL']?.toLowerCase();
@@ -51,10 +52,18 @@ const defaultLogFile = (): string => {
   return resolve(logDir, 'kra-debug.log');
 };
 
-export const diagnosticsLogFile = (): string =>
-  process.env['KRA_LOG_FILE'] ? resolve(process.env['KRA_LOG_FILE']) : defaultLogFile();
+export const diagnosticsLogFile = (env: NodeJS.ProcessEnv = process.env): string =>
+  env['KRA_LOG_FILE'] ? resolve(env['KRA_LOG_FILE']) : defaultLogFile();
 
 export const redactDiagnosticsValue = (value: unknown): unknown => {
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    };
+  }
+
   if (Array.isArray(value)) {
     return value.map((item) => redactDiagnosticsValue(item));
   }
@@ -83,6 +92,21 @@ const normalizeError = (error: unknown): DiagnosticLogContext => {
   return { error };
 };
 
+export const writeDiagnosticsRecord = (
+  record: Record<string, unknown>,
+  env: NodeJS.ProcessEnv = process.env,
+): void => {
+  if (!isDiagnosticsEnabled(env)) return;
+
+  const file = diagnosticsLogFile(env);
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    appendFileSync(file, `${JSON.stringify(redactDiagnosticsValue(record))}\n`, 'utf8');
+  } catch {
+    // Diagnostics must never break normal CLI behavior.
+  }
+};
+
 export const writeDiagnosticLog = (
   level: DiagnosticLogLevel,
   scope: string,
@@ -91,22 +115,14 @@ export const writeDiagnosticLog = (
 ): void => {
   if (!shouldLog(level)) return;
 
-  const file = diagnosticsLogFile();
-  const payload = {
+  writeDiagnosticsRecord({
     ts: new Date().toISOString(),
     level,
     runId,
     scope,
     event,
-    context: redactDiagnosticsValue(context),
-  };
-
-  try {
-    mkdirSync(dirname(file), { recursive: true });
-    appendFileSync(file, `${JSON.stringify(payload)}\n`, 'utf8');
-  } catch {
-    // Diagnostics must never break normal CLI behavior.
-  }
+    context,
+  });
 };
 
 export const logDebug = (scope: string, event: string, context?: DiagnosticLogContext): void =>

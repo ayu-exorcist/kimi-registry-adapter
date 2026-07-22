@@ -42,6 +42,8 @@ During the session:
 - the input-idle boundary applies to both resolved and rejected loading actions;
 - diagnostics report `inputSessionActive`, `readableFlowing`, and physical stdin data-listener counts.
 
+A `TerminalSession` instance owns the runtime streams, filtered input router, shared readline state, raw-mode lease, and active prompt input session. Existing prompt helpers delegate to the default instance so command and test call sites keep the same API.
+
 At interactive shutdown KRA:
 
 1. closes the shared readline interface;

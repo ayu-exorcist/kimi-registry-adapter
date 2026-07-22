@@ -1,4 +1,5 @@
-import { rm } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { rename, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { readAuthConfig, removeProviderAuth, setProviderAuth, writeAuthConfigAsync } from './auth';
@@ -16,6 +17,11 @@ import type { ProviderDefinitionInput } from './provider-definition';
 import { assertPathInside, normalizeProviderId, providerRegistryGitPath } from './provider-id';
 import type { MergeConflictValue } from './registry-merge';
 import { createStatePaths, type UpdateState } from './state';
+import {
+  createStateFileTransaction,
+  throwStateOperationCause,
+  throwStateRollbackError,
+} from './state-file-transaction';
 import type { UpdateMode } from './update';
 
 export type SaveProviderDefinitionInput = {
@@ -239,6 +245,35 @@ export const configureProviderAuthAsync = async (
   };
 };
 
+type StagedProviderDirectoryRemoval = {
+  commit: () => Promise<void>;
+  rollback: () => Promise<void>;
+};
+
+const stageProviderDirectoryRemoval = async (
+  stateDir: string,
+  providerDir: string,
+): Promise<StagedProviderDirectoryRemoval | undefined> => {
+  const safeProviderDir = assertPathInside(stateDir, providerDir);
+  const stagedPath = assertPathInside(
+    stateDir,
+    resolve(stateDir, `.kra-remove-${process.pid}-${randomUUID()}.tmp`),
+  );
+  try {
+    await rename(safeProviderDir, stagedPath);
+  } catch (error) {
+    if (isFileNotFoundError(error)) {
+      return undefined;
+    }
+    throw error;
+  }
+
+  return {
+    commit: () => rm(stagedPath, { recursive: true, force: true }),
+    rollback: () => rename(stagedPath, safeProviderDir),
+  };
+};
+
 export const removeProviderDefinitionAsync = async (
   input: RemoveProviderDefinitionInput,
 ): Promise<RemoveProviderDefinitionResult> => {
@@ -247,28 +282,53 @@ export const removeProviderDefinitionAsync = async (
   const paths = createStatePaths(stateDir, safeProviderId);
   const config = readExistingOrDefaultConfig(paths.configPath);
   const auth = readAuthConfig(paths.authPath);
+  const transaction = await createStateFileTransaction([paths.configPath, paths.authPath]);
+  let stagedDirectory: StagedProviderDirectoryRemoval | undefined;
 
-  await writeConfigAsync(paths.configPath, removeProviderFromConfig(config, safeProviderId));
-  await writeAuthConfigAsync(paths.authPath, removeProviderAuth(auth, safeProviderId));
+  try {
+    if (!input.keepFiles) {
+      stagedDirectory = await stageProviderDirectoryRemoval(stateDir, paths.providerDir);
+    }
+    await writeConfigAsync(paths.configPath, removeProviderFromConfig(config, safeProviderId));
+    await writeAuthConfigAsync(paths.authPath, removeProviderAuth(auth, safeProviderId));
+    await transaction.checkpoint();
 
-  if (!input.keepFiles) {
-    await rm(assertPathInside(stateDir, paths.providerDir), { recursive: true, force: true });
+    const commit = await commitProviderUpdateAsync({
+      stateDir,
+      providerId: safeProviderId,
+      modelCount: 0,
+      conflicts: [],
+      action: 'remove',
+      includeRegistry: !input.keepFiles,
+    });
+    await stagedDirectory?.commit();
+
+    return {
+      providerId: safeProviderId,
+      configPath: paths.configPath,
+      authPath: paths.authPath,
+      deletedFiles: !input.keepFiles,
+      ...(commit ? { commit } : {}),
+    };
+  } catch (error) {
+    const rollbackErrors: unknown[] = [];
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
+    try {
+      await stagedDirectory?.rollback();
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
+    if (rollbackErrors.length > 0) {
+      return throwStateRollbackError(
+        error,
+        rollbackErrors,
+        'Provider removal failed and its state could not be rolled back safely.',
+      );
+    }
+    return throwStateOperationCause(error);
   }
-
-  const commit = await commitProviderUpdateAsync({
-    stateDir,
-    providerId: safeProviderId,
-    modelCount: 0,
-    conflicts: [],
-    action: 'remove',
-    includeRegistry: !input.keepFiles,
-  });
-
-  return {
-    providerId: safeProviderId,
-    configPath: paths.configPath,
-    authPath: paths.authPath,
-    deletedFiles: !input.keepFiles,
-    ...(commit ? { commit } : {}),
-  };
 };

@@ -143,7 +143,7 @@ Important options:
 - `--update-timeout-ms <ms>` controls the per-provider update timeout. Default is `30000`.
 - `--state-dir <path>`, `--host <host>`, and `--port <port>` select the served state and bind address.
 
-Scheduled updates skip a run if the previous scheduled run is still active.
+Scheduled updates start only after the HTTP server is listening, skip a run if the previous scheduled run is still active, and dispose their timer when the serve session closes.
 
 ### HTTP Endpoints
 

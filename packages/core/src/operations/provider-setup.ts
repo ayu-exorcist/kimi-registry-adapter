@@ -1,12 +1,17 @@
-import { withStateDirLock } from '../lock';
+import { withProviderLock, withStateDirLock } from '../lock';
 import { normalizeProviderId } from '../provider-id';
 import type { DiscoveredModel } from '../provider-model-source';
+import { createStatePaths } from '../state';
 import {
   commitProviderConfigChangeAsync,
   configureProviderAuthAsync,
   persistUpdateModeAsync,
   saveProviderDefinitionAsync,
 } from '../state-directory-mutation';
+import {
+  createStateFileTransaction,
+  rollbackStateFileTransaction,
+} from '../state-file-transaction';
 import type { MetadataMatchSummary } from '../transform';
 import { prepareProviderUpdate, type UpdateMode, type UpdateProviderRuntime } from '../update';
 import type { ProviderDefinitionInput, StateDirInput } from './types';
@@ -72,50 +77,66 @@ export const setupProviderOperation = async (
 ): Promise<SetupProviderResult> => {
   const providerId = normalizeProviderId(input.providerId);
   const safeInput = { ...input, providerId };
-  const saved = await withStateDirLock(input.stateDir, async () => {
-    const saved = await saveProviderUnlocked({ ...safeInput, commit: false });
-    if (input.storeApiKey && input.apiKey) {
-      await configureProviderAuthAsync({
-        stateDir: saved.stateDir,
-        providerId,
-        apiKey: input.apiKey,
-      });
-    }
-    await persistUpdateModeAsync(saved.stateDir, providerId, input.updateMode);
-    return saved;
-  });
 
-  let editablePath: string | undefined;
-  let modelCount: number | undefined;
-  let metadataMatchSummary: MetadataMatchSummary | undefined;
-  let commit: string | undefined;
-
-  if (input.updateNow !== false) {
-    const prepared = await prepareProviderUpdate(
-      providerUpdatePreparationInput({ ...input, stateDir: saved.stateDir, providerId }),
-    );
-    const result = await applyPreparedProviderUpdateOperation({
-      stateDir: saved.stateDir,
-      providerId,
-      prepared,
-      ...(input.updateMode ? { updateMode: input.updateMode } : {}),
-      ...(input.signal ? { signal: input.signal } : {}),
+  return withProviderLock(input.stateDir, providerId, async () => {
+    const paths = createStatePaths(input.stateDir, providerId);
+    const { saved, transaction } = await withStateDirLock(input.stateDir, async () => {
+      const transaction = await createStateFileTransaction([paths.configPath, paths.authPath]);
+      try {
+        const saved = await saveProviderUnlocked({ ...safeInput, commit: false });
+        if (input.storeApiKey && input.apiKey) {
+          await configureProviderAuthAsync({
+            stateDir: saved.stateDir,
+            providerId,
+            apiKey: input.apiKey,
+          });
+        }
+        await persistUpdateModeAsync(saved.stateDir, providerId, input.updateMode);
+        await transaction.checkpoint();
+        return { saved, transaction };
+      } catch (error) {
+        return rollbackStateFileTransaction(transaction, error);
+      }
     });
-    modelCount = result.modelCount;
-    metadataMatchSummary = result.metadataMatchSummary;
-    editablePath = result.editablePath;
-    commit = result.commit;
-  }
 
-  const setupResult: SetupProviderResult = {
-    providerId,
-    configPath: saved.configPath,
-    ...(editablePath ? { editablePath } : {}),
-    ...(metadataMatchSummary ? { metadataMatchSummary } : {}),
-    ...(commit ? { commit } : {}),
-  };
-  if (modelCount !== undefined) {
-    setupResult.modelCount = modelCount;
-  }
-  return setupResult;
+    try {
+      let editablePath: string | undefined;
+      let modelCount: number | undefined;
+      let metadataMatchSummary: MetadataMatchSummary | undefined;
+      let commit: string | undefined;
+
+      if (input.updateNow !== false) {
+        const prepared = await prepareProviderUpdate(
+          providerUpdatePreparationInput({ ...input, stateDir: saved.stateDir, providerId }),
+        );
+        const result = await applyPreparedProviderUpdateOperation({
+          stateDir: saved.stateDir,
+          providerId,
+          prepared,
+          ...(input.updateMode ? { updateMode: input.updateMode } : {}),
+          ...(input.signal ? { signal: input.signal } : {}),
+        });
+        modelCount = result.modelCount;
+        metadataMatchSummary = result.metadataMatchSummary;
+        editablePath = result.editablePath;
+        commit = result.commit;
+      }
+
+      const setupResult: SetupProviderResult = {
+        providerId,
+        configPath: saved.configPath,
+        ...(editablePath ? { editablePath } : {}),
+        ...(metadataMatchSummary ? { metadataMatchSummary } : {}),
+        ...(commit ? { commit } : {}),
+      };
+      if (modelCount !== undefined) {
+        setupResult.modelCount = modelCount;
+      }
+      return setupResult;
+    } catch (error) {
+      return withStateDirLock(input.stateDir, () =>
+        rollbackStateFileTransaction(transaction, error),
+      );
+    }
+  });
 };

@@ -33,19 +33,3 @@ export const formatProviderUpdateNote = ({
     ...(commit ? [`commit: ${commit}`] : []),
   ].join('\n');
 };
-
-export type ProviderUpdateModeNoteInput = {
-  providerId: string;
-  configPath: string;
-  updateMode: string;
-};
-
-export const formatProviderUpdateModeNote = ({
-  providerId,
-  configPath,
-  updateMode,
-}: ProviderUpdateModeNoteInput): string => {
-  return [`provider: ${providerId}`, `config: ${configPath}`, `update mode: ${updateMode}`].join(
-    '\n',
-  );
-};

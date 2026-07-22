@@ -51,7 +51,7 @@ The main runtime flows are:
 
 The hidden default command starts interactive mode. Interactive mode requires both stdin and stdout to be TTYs; non-interactive usage should use `kra add` and the other subcommands.
 
-Interactive add walks through provider ID, base URL, auth mode, provider type, model source, model inclusion, update mode, and whether to start the server. After a provider exists, the interactive update flow can change provider name, base URL, auth source, provider type, model source, included models, update mode, or refresh the registry.
+Interactive add walks through provider ID, base URL, auth mode, provider type, model source, model inclusion, and whether to start the server. Interactive add and refresh fix the update mode to `merge` to preserve manual edits. After a provider exists, the interactive update flow can change provider name, base URL, auth source, provider type, model source, or included models, and refresh the registry. Explicit overwrite behavior remains available in command mode.
 
 Interactive mode owns a stable stdin route and raw-mode lease for the complete wizard. Individual prompts own only their keypress and resize handlers; loading and prompt transitions do not reconfigure the physical TTY. Auto theme reports are filtered on this stable route, while fixed/custom themes use direct forwarding. See `docs/interactive-terminal.md` for lifecycle invariants and Windows regression coverage.
 

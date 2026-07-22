@@ -64,10 +64,7 @@ describe('interactive add provider flow', () => {
       .mockResolvedValueOnce('https://api.example.com/v1')
       .mockResolvedValueOnce('PROVIDER_A_KEY')
       .mockResolvedValueOnce('');
-    mocks.selectPrompt
-      .mockResolvedValueOnce('env')
-      .mockResolvedValueOnce('anthropic')
-      .mockResolvedValueOnce('overwrite');
+    mocks.selectPrompt.mockResolvedValueOnce('env').mockResolvedValueOnce('anthropic');
     mocks.ensureInteractiveModels.mockResolvedValueOnce({
       status: 'ok',
       modelIds: ['claude-a'],
@@ -102,7 +99,6 @@ describe('interactive add provider flow', () => {
     expect(mocks.selectPrompt.mock.calls.map(([options]) => options.message)).toEqual([
       'API key source',
       'Provider API type',
-      'Future update behavior',
     ]);
     expect(mocks.ensureInteractiveModels).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -123,7 +119,6 @@ describe('interactive add provider flow', () => {
       state: expect.objectContaining({
         providerId: 'provider-a',
         include: ['claude-a'],
-        updateMode: 'overwrite',
       }),
     });
     expect(mocks.confirmPrompt).toHaveBeenCalledWith({

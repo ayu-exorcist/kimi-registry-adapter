@@ -210,10 +210,10 @@ npx @kastral/kra add moonshot \
   --exclude "*-preview,*-deprecated"
 ```
 
-Update modes:
+Interactive add and refresh always use `merge`, so guided flows do not ask users to choose an update strategy. Command mode keeps both update modes:
 
 - `merge` preserves local edits where possible and records conflicts in `.internal/state.json` while keeping current editable values when upstream and local edits cannot be reconciled.
-- `overwrite` regenerates application data from discovery results.
+- `overwrite` regenerates application data from discovery results; select it explicitly with `--update-mode overwrite` or `--force`.
 
 ## HTTP endpoints from `serve`
 

@@ -1,7 +1,5 @@
 import type { DiscoveredModel, ProviderType } from '@kastral/kra-core';
 
-import type { UpdateMode } from './args';
-
 export type AddProviderAuthMode = 'none' | 'once' | 'store' | 'env';
 
 export type AddProviderState = {
@@ -18,7 +16,6 @@ export type AddProviderState = {
   cachedModelIds: string[] | undefined;
   cachedModels: DiscoveredModel[] | undefined;
   cachedModelsKey: string | undefined;
-  updateMode: UpdateMode;
   startServerNow: boolean;
 };
 
@@ -31,7 +28,6 @@ export type AddProviderStepId =
   | 'providerType'
   | 'modelSource'
   | 'modelInclude'
-  | 'updateMode'
   | 'startServer';
 
 type AddProviderStepDefinition = {
@@ -54,7 +50,6 @@ const addProviderStepDefinitions: AddProviderStepDefinition[] = [
   { id: 'providerType' },
   { id: 'modelSource' },
   { id: 'modelInclude' },
-  { id: 'updateMode' },
   { id: 'startServer' },
 ];
 

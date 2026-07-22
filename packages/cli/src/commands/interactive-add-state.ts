@@ -28,7 +28,6 @@ export const createInitialAddProviderState = (): AddProviderState => ({
   cachedModelIds: undefined,
   cachedModels: undefined,
   cachedModelsKey: undefined,
-  updateMode: 'merge',
   startServerNow: true,
 });
 
@@ -129,9 +128,6 @@ export const resetAddProviderStateAfterStep = (
     resetModelChoices(state);
   }
   if (shouldReset('modelInclude')) {
-    state.updateMode = 'merge';
-  }
-  if (shouldReset('updateMode')) {
     state.startServerNow = true;
   }
 };

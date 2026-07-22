@@ -210,10 +210,10 @@ npx @kastral/kra add moonshot \
   --exclude "*-preview,*-deprecated"
 ```
 
-更新模式：
+交互式新增和刷新始终使用 `merge`，引导流程不再要求用户选择更新策略。命令模式仍保留两种更新模式：
 
 - `merge` 会尽可能保留本地编辑；当上游变更和本地编辑无法协调时，会在 `.internal/state.json` 中记录冲突，并保留当前可编辑值。
-- `overwrite` 会基于 discovery 结果重新生成应用数据。
+- `overwrite` 会基于 discovery 结果重新生成应用数据；需要时请显式使用 `--update-mode overwrite` 或 `--force`。
 
 ## `serve` 提供的 HTTP 端点
 

@@ -136,6 +136,7 @@ describe('interactive provider actions', () => {
       stateDir: '/state',
       providerId: 'provider-a',
       models: [{ id: 'model-a' }, { id: 'model-b' }],
+      updateMode: 'merge',
     });
     expect(mocks.showNote).toHaveBeenCalledWith(
       expect.stringContaining('include: model-b'),
@@ -192,12 +193,14 @@ describe('interactive provider actions', () => {
     expect(mocks.updateProviderOperation).toHaveBeenCalledWith({
       stateDir: '/state',
       providerId: 'provider-a',
+      updateMode: 'merge',
     });
     expect(mocks.selectPrompt).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         message: 'Update provider-a',
         initialValue: 'name',
+        options: expect.not.arrayContaining([expect.objectContaining({ label: 'Update mode' })]),
       }),
     );
     expect(mocks.showNote).toHaveBeenCalledWith(
@@ -251,6 +254,7 @@ describe('interactive provider actions', () => {
     expect(mocks.updateProviderOperation).toHaveBeenCalledWith({
       stateDir: '/state',
       providerId: 'provider-a',
+      updateMode: 'merge',
     });
     expect(mocks.showNote).toHaveBeenCalledWith(
       expect.stringContaining('config: /state/config.json'),
@@ -298,6 +302,7 @@ describe('interactive provider actions', () => {
     expect(mocks.updateProviderOperation).toHaveBeenCalledWith({
       stateDir: '/state',
       providerId: 'provider-a',
+      updateMode: 'merge',
     });
   });
 
@@ -337,41 +342,8 @@ describe('interactive provider actions', () => {
     expect(mocks.updateProviderOperation).toHaveBeenCalledWith({
       stateDir: '/state',
       providerId: 'provider-a',
+      updateMode: 'merge',
     });
-  });
-
-  it('updates the selected provider update mode without refreshing the registry', async () => {
-    mocks.selectExistingProviderId
-      .mockResolvedValueOnce('provider-a')
-      .mockResolvedValueOnce(undefined);
-    mocks.selectPrompt
-      .mockResolvedValueOnce('updateMode')
-      .mockResolvedValueOnce('overwrite')
-      .mockResolvedValueOnce(Symbol('back'));
-    mocks.getProviderConfig.mockReturnValueOnce({
-      providerId: 'provider-a',
-      configPath: '/state/config.json',
-      provider: { name: 'Provider A', baseUrl: 'https://api.example.com', type: 'openai' },
-    });
-    mocks.updateProviderConfig.mockResolvedValueOnce({
-      providerId: 'provider-a',
-      configPath: '/state/config.json',
-    });
-
-    const { runInteractiveUpdateProvider } = await import('../src/commands/interactive-actions');
-
-    await runInteractiveUpdateProvider({ stateDir: '/state' });
-
-    expect(mocks.updateProviderConfig).toHaveBeenCalledWith({
-      stateDir: '/state',
-      providerId: 'provider-a',
-      updateMode: 'overwrite',
-    });
-    expect(mocks.updateProviderOperation).not.toHaveBeenCalled();
-    expect(mocks.showNote).toHaveBeenCalledWith(
-      ['provider: provider-a', 'config: /state/config.json', 'update mode: overwrite'].join('\n'),
-      'Provider updated',
-    );
   });
 
   it.each([
@@ -439,6 +411,7 @@ describe('interactive provider actions', () => {
       expect(mocks.updateProviderOperation).toHaveBeenCalledWith({
         stateDir: '/state',
         providerId: 'provider-a',
+        updateMode: 'merge',
       });
     },
   );

@@ -12,6 +12,7 @@ import {
   resolvedInteractiveModelSource,
 } from './interactive-add-state';
 import type { AddProviderState } from './interactive-add-wizard';
+import { INTERACTIVE_UPDATE_MODE } from './interactive-shared';
 
 export type ProviderSetupDraft = ProviderDefinitionFields & {
   stateDir: string;
@@ -96,7 +97,7 @@ export const providerSetupDraftFromInteractiveState = (
     ...(apiKeyEnv ? { apiKeyEnv } : {}),
     ...(state.include ? { include: state.include } : {}),
     ...(apiKey ? { apiKey } : {}),
-    updateMode: state.updateMode,
+    updateMode: INTERACTIVE_UPDATE_MODE,
     ...(cachedModels ? { cachedModels } : {}),
   };
 };

@@ -32,7 +32,6 @@ const addProviderState = (overrides: Partial<AddProviderState> = {}): AddProvide
   cachedModelIds: undefined,
   cachedModels: undefined,
   cachedModelsKey: undefined,
-  updateMode: 'merge',
   startServerNow: true,
   ...overrides,
 });
@@ -65,6 +64,8 @@ describe('interactive add wizard steps', () => {
     const state = addProviderState();
 
     expect(getPreviousAddProviderStepId('providerId', state)).toBe('providerId');
+    expect(getNextAddProviderStepId('modelInclude', state)).toBe('startServer');
+    expect(getPreviousAddProviderStepId('startServer', state)).toBe('modelInclude');
     expect(getNextAddProviderStepId('startServer', state)).toBe('startServer');
   });
 
@@ -153,11 +154,7 @@ describe('interactive add provider use case', () => {
       .mockResolvedValueOnce('https://api.example.com/v1')
       .mockResolvedValueOnce('')
       .mockResolvedValueOnce('');
-    const selectPrompt = vi
-      .fn()
-      .mockResolvedValueOnce('none')
-      .mockResolvedValueOnce('openai')
-      .mockResolvedValueOnce('merge');
+    const selectPrompt = vi.fn().mockResolvedValueOnce('none').mockResolvedValueOnce('openai');
     const confirmPrompt = vi.fn().mockResolvedValueOnce(true);
     const ensureInteractiveModels = vi.fn().mockResolvedValueOnce({
       status: 'ok',
@@ -232,7 +229,6 @@ describe('interactive add state helpers', () => {
       providerId: '',
       authMode: 'store',
       providerType: 'openai_responses',
-      updateMode: 'merge',
       startServerNow: true,
     });
   });
@@ -266,7 +262,6 @@ describe('interactive add state helpers', () => {
       include: ['model-a'],
       includeSource: 'selection',
       selectModelsFromFetchedList: false,
-      updateMode: 'overwrite',
       startServerNow: false,
     });
 
@@ -279,7 +274,7 @@ describe('interactive add state helpers', () => {
     expect(state.include).toBeUndefined();
     expect(state.includeSource).toBe('manual');
     expect(state.selectModelsFromFetchedList).toBe(true);
-    expect(state.updateMode).toBe('merge');
+    expect(state.startServerNow).toBe(true);
   });
 
   it('keys and returns cached models only for the current state', () => {
@@ -301,7 +296,6 @@ describe('interactive add state helpers', () => {
       apiKeyEnv: 'PROVIDER_KEY',
       modelSourceInput: 'https://models.example.com/list.json',
       include: ['model-a'],
-      updateMode: 'overwrite',
     });
 
     expect(providerSetupDraftFromInteractiveState('/state', state)).toMatchObject({
@@ -312,7 +306,7 @@ describe('interactive add state helpers', () => {
       modelSource: { kind: 'remote_url', url: 'https://models.example.com/list.json' },
       apiKeyEnv: 'PROVIDER_KEY',
       include: ['model-a'],
-      updateMode: 'overwrite',
+      updateMode: 'merge',
     });
   });
 

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  formatProviderUpdateModeNote,
-  formatProviderUpdateNote,
-} from '../src/commands/interactive-update-presenter';
+import { formatProviderUpdateNote } from '../src/commands/interactive-update-presenter';
 
 describe('interactive update presenter', () => {
   it('formats refresh result notes with optional config and commit lines', () => {
@@ -28,7 +25,7 @@ describe('interactive update presenter', () => {
     );
   });
 
-  it('formats model include and update mode notes', () => {
+  it('formats model include notes', () => {
     expect(
       formatProviderUpdateNote({
         providerId: 'provider-a',
@@ -38,13 +35,5 @@ describe('interactive update presenter', () => {
         metadataMatchSummary: { exact: 0, normalized: 0, unmatched: 1 },
       }),
     ).toContain('include: model-a,model-b');
-
-    expect(
-      formatProviderUpdateModeNote({
-        providerId: 'provider-a',
-        configPath: '/state/config.json',
-        updateMode: 'merge',
-      }),
-    ).toBe(['provider: provider-a', 'config: /state/config.json', 'update mode: merge'].join('\n'));
   });
 });

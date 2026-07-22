@@ -53,10 +53,9 @@ Interactive mode opens the main menu. With no configured providers, the practica
 4. provider API type: `openai_responses`, `openai`, or `anthropic`
 5. model list source: empty for provider default, URL for `remote_url`, or local path for `local_file`
 6. model IDs to include
-7. future update mode: `merge` or `overwrite`
-8. whether to start the registry server immediately
+7. whether to start the registry server immediately
 
-After a provider exists, the interactive update menu can change provider name, base URL, API key source, provider type, model source, included models, update mode, or refresh the registry.
+Interactive add and refresh always use `merge` so manual `api.json` edits are preserved by default. After a provider exists, the interactive update menu can change provider name, base URL, API key source, provider type, model source, or included models, and refresh the registry. Use command mode with `--update-mode overwrite` or `--force` when an explicit rebuild is required.
 
 ### Command-Mode Commands
 

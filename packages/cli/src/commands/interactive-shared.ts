@@ -11,6 +11,8 @@ import { selectPrompt } from './prompt-adapters';
 export type MainInteractiveAction = 'add' | 'list' | 'update' | 'remove' | 'serve';
 export type InteractiveAuthAction = 'store' | 'env' | 'clearStoredKey' | 'stopUsingEnv';
 
+export const INTERACTIVE_UPDATE_MODE = 'merge' as const;
+
 const isPromptCancel = (value: unknown): value is symbol => typeof value === 'symbol';
 
 export const unwrapSubmenuPrompt = <T>(value: T | symbol): T | undefined => {

@@ -12,7 +12,6 @@ import {
   type ProviderType,
 } from '@kastral/kra-core';
 
-import type { UpdateMode } from './args';
 import {
   modelIdsFromPayload,
   modelIdsMatchingInclude,
@@ -20,15 +19,13 @@ import {
 } from './interactive-add-models';
 import { configureProviderAuthForSelectedProvider } from './interactive-auth-action';
 import {
+  INTERACTIVE_UPDATE_MODE,
   requiredText,
   selectExistingProviderId,
   unwrapCustomSelect,
   unwrapSubmenuPrompt,
 } from './interactive-shared';
-import {
-  formatProviderUpdateModeNote,
-  formatProviderUpdateNote,
-} from './interactive-update-presenter';
+import { formatProviderUpdateNote } from './interactive-update-presenter';
 import { inputPrompt, selectPrompt, withLoadingIndicator } from './prompt-adapters';
 import { showNote } from './render';
 
@@ -39,7 +36,6 @@ type ProviderManageAction =
   | 'modelSource'
   | 'models'
   | 'auth'
-  | 'updateMode'
   | 'refresh';
 
 type ProviderActionResult = 'done' | 'back';
@@ -94,7 +90,6 @@ const providerManageOptions: Array<{ value: ProviderManageAction; label: string;
     { value: 'type', label: 'API type' },
     { value: 'modelSource', label: 'Model source' },
     { value: 'models', label: 'Models to include' },
-    { value: 'updateMode', label: 'Update mode' },
     { value: 'refresh', label: 'Refresh registry' },
   ];
 
@@ -191,6 +186,7 @@ const updateProviderModelsToExpose = async (options: {
       stateDir: options.stateDir,
       providerId: options.providerId,
       models: fetched.models,
+      updateMode: INTERACTIVE_UPDATE_MODE,
       signal,
     }),
   );
@@ -219,6 +215,7 @@ const refreshProviderRegistry = async (options: {
     options.runtime.updateProviderOperation({
       stateDir: options.stateDir,
       providerId: options.providerId,
+      updateMode: INTERACTIVE_UPDATE_MODE,
       signal,
     }),
   );
@@ -344,52 +341,6 @@ const updateProviderModelSource = async (options: {
   return 'done';
 };
 
-const updateProviderUpdateMode = async (options: {
-  stateDir: string;
-  providerId: string;
-  runtime: InteractiveUpdateProviderRuntime;
-}): Promise<ProviderActionResult> => {
-  const current = options.runtime.getProviderConfig(options).provider;
-  const updateMode = unwrapCustomSelect(
-    await options.runtime.selectPrompt<UpdateMode>({
-      message: 'Update mode',
-      details: [
-        {
-          tone: 'info',
-          text: 'When models refresh, what happens to manual edits in api.json?',
-        },
-      ],
-      options: [
-        { value: 'merge', label: 'merge', hint: 'keep manual edits' },
-        {
-          value: 'overwrite',
-          label: 'overwrite',
-          hint: 'rebuild api.json',
-        },
-      ],
-      initialValue: current.updateMode ?? 'merge',
-    }),
-  );
-
-  if (updateMode === undefined) return 'back';
-
-  const result = await options.runtime.updateProviderConfig({
-    stateDir: options.stateDir,
-    providerId: options.providerId,
-    updateMode,
-  });
-
-  options.runtime.showNote(
-    formatProviderUpdateModeNote({
-      providerId: options.providerId,
-      configPath: result.configPath,
-      updateMode,
-    }),
-    'Provider updated',
-  );
-  return 'done';
-};
-
 export const runInteractiveUpdateProvider = async (options: {
   stateDir: string;
   runtime?: Partial<InteractiveUpdateProviderRuntime>;
@@ -442,8 +393,6 @@ export const runInteractiveUpdateProvider = async (options: {
           updateProviderModelSource({ stateDir: options.stateDir, providerId, runtime }),
         models: () =>
           updateProviderModelsToExpose({ stateDir: options.stateDir, providerId, runtime }),
-        updateMode: () =>
-          updateProviderUpdateMode({ stateDir: options.stateDir, providerId, runtime }),
       };
 
       if (action === 'refresh') {

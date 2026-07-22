@@ -1,7 +1,6 @@
 import { parseProviderType, providerTypeOptions, type ProviderType } from '@kastral/kra-core';
 
 import { isInteractiveHome } from '../prompts/navigation';
-import type { UpdateMode } from './args';
 import {
   saveAndUpdateInteractiveProvider,
   type FinalizedInteractiveProvider,
@@ -253,31 +252,6 @@ const createAddProviderStepHandlers = (options: {
       state.selectModelsFromFetchedList = selectedInclude.selectFromList;
       return next('modelInclude');
     },
-    updateMode: async () => {
-      const updateModeInput = unwrapCustomSelect(
-        await runtime.selectPrompt<UpdateMode>({
-          message: 'Future update behavior',
-          details: [
-            {
-              tone: 'info',
-              text: 'When models refresh, what happens to manual edits in api.json?',
-            },
-          ],
-          options: [
-            { value: 'merge', label: 'Keep my edits', hint: 'recommended' },
-            {
-              value: 'overwrite',
-              label: 'Rebuild api.json',
-              hint: 'overwrite generated fields',
-            },
-          ],
-          initialValue: state.updateMode,
-        }),
-      );
-      if (updateModeInput === undefined) return back();
-      state.updateMode = updateModeInput;
-      return next('updateMode');
-    },
     startServer: async () => {
       await finalizeProvider();
 
@@ -375,7 +349,7 @@ export const runInteractiveAddProvider = async (options: {
     ...(editablePath ? [`registry: ${editablePath}`] : []),
     ...(modelCount === undefined ? [] : [`models: ${modelCount}`]),
     ...(include ? [`include: ${include.join(',')}`] : []),
-    `update mode: ${state.updateMode}`,
+    'manual edits: preserved on refresh',
     ...(commit ? [`commit: ${commit}`] : []),
     `url: ${url}`,
     `serve: ${serveCommand}`,

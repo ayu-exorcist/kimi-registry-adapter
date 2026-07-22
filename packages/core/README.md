@@ -55,7 +55,7 @@ Provider configuration supports:
 - `apiKeyEnv` — environment variable name for the provider API key.
 - `updateMode` — `merge` or `overwrite`.
 - `include` / `exclude` — model ID filters.
-- `overrides` — per-model editable overrides for identity, limits, capabilities, and modalities.
+- `overrides` — per-model editable overrides for identity, limits, capabilities, thinking effort levels/defaults, and modalities.
 
 ## Public operations
 

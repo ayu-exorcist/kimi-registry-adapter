@@ -3,6 +3,8 @@ const modelCapabilityFieldNames = [
   'tool_call',
   'reasoning',
   'interleaved',
+  'support_efforts',
+  'default_effort',
   'modalities',
 ] as const;
 

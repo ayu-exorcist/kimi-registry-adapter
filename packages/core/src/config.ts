@@ -8,6 +8,7 @@ import { DEFAULT_PROVIDER_TYPE, providerModelEndpointSourceKinds } from './provi
 import { normalizeProviderId } from './provider-id';
 import {
   modalitySchema,
+  nonEmptyStringArraySchema,
   nonEmptyStringSchema,
   positiveIntegerSchema,
   providerTypeSchema,
@@ -46,6 +47,8 @@ const modelOverrideSchema = z.strictObject({
   tool_call: z.optional(z.boolean()),
   reasoning: z.optional(z.boolean()),
   interleaved: z.optional(z.boolean()),
+  support_efforts: z.optional(nonEmptyStringArraySchema),
+  default_effort: z.optional(nonEmptyString),
   modalities: z.optional(
     z.strictObject({
       input: z.optional(nonEmptyModalities),

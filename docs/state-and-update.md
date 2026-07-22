@@ -92,8 +92,8 @@ The transform layer filters and enriches discovered models before writing a regi
 - Default exclude patterns are `*embedding*`, `*embed*`, `*rerank*`, `*tts*`, and `*whisper*`.
 - Default fallback context is `131072`.
 - Default fallback tool calling is `false`.
-- Metadata can fill name, family, limits, tool calling, reasoning, interleaved support, and modalities when source model fields do not already provide those values.
-- Per-model overrides can override `id`, `name`, `family`, `limit`, `tool_call`, `reasoning`, `interleaved`, and `modalities` after inference.
+- Metadata can fill name, family, limits, tool calling, reasoning, interleaved support, thinking effort fields, and modalities when source model fields do not already provide those values. Models.dev-style `reasoning_options` effort values are converted to `support_efforts`, excluding disable sentinels and invalid values; no default effort is guessed.
+- Per-model overrides can override `id`, `name`, `family`, `limit`, `tool_call`, `reasoning`, `interleaved`, `support_efforts`, `default_effort`, and `modalities` after inference.
 - Unknown extra fields are allowed in editable registry providers and models, so user metadata can survive validation when it is added to `api.json`.
 
 ### Merge And Overwrite

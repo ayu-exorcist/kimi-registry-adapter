@@ -111,6 +111,18 @@ describe('config', () => {
       'audio',
       'video',
     ]);
+    expect(overrideSchema.properties?.['support_efforts']).toMatchObject({
+      type: 'array',
+      minItems: 1,
+    });
+    expect(overrideSchema.properties?.['support_efforts']?.items).toMatchObject({
+      type: 'string',
+      minLength: 1,
+    });
+    expect(overrideSchema.properties?.['default_effort']).toMatchObject({
+      type: 'string',
+      minLength: 1,
+    });
   });
 
   it('creates, writes, and reads the default config', () => {
@@ -156,6 +168,22 @@ describe('config', () => {
     });
     expect(savedProvider.apiKeyEnv).toBe('PROVIDER_API_KEY');
     expect(savedProvider.npm).toBe('@ai-sdk/openai');
+  });
+
+  it('rejects invalid effort overrides', () => {
+    expect(() =>
+      addProviderToConfig(createDefaultConfig(), 'provider', {
+        name: 'Provider',
+        baseUrl: 'https://gateway.example.com/v1',
+        type: 'openai_responses',
+        overrides: {
+          'model-a': {
+            support_efforts: ['low', '   '],
+            default_effort: ' ',
+          },
+        },
+      }),
+    ).toThrow(/./u);
   });
 
   it('rejects override modalities that generated registries cannot use', () => {

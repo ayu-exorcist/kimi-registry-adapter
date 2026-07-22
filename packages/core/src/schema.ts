@@ -2,6 +2,7 @@ import * as z from 'zod/mini';
 
 import {
   modalitySchema,
+  nonEmptyStringArraySchema,
   nonEmptyStringSchema,
   positiveIntegerSchema,
   providerTypeSchema,
@@ -54,6 +55,9 @@ export const sourceModelSchema = z.looseObject({
   reasoning_supported: z.optional(z.boolean()),
   interleaved: z.optional(z.boolean()),
   supports_interleaved: z.optional(z.boolean()),
+  support_efforts: z.optional(z.unknown()),
+  default_effort: z.optional(z.unknown()),
+  reasoning_options: z.optional(z.unknown()),
   modalities: z.optional(modalitiesSchema),
   architecture: z.optional(
     z.looseObject({
@@ -79,6 +83,8 @@ const modelCapabilityFields = {
   tool_call: z.optional(z.boolean()),
   reasoning: z.optional(z.boolean()),
   interleaved: z.optional(z.boolean()),
+  support_efforts: z.optional(nonEmptyStringArraySchema),
+  default_effort: z.optional(nonEmptyString),
   modalities: z.optional(modalitiesSchema),
 };
 

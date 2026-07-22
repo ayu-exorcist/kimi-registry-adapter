@@ -7,6 +7,11 @@ import {
   type ModelsMetadataEntry,
 } from './model-capability';
 import { allowedMetadataModalities } from './model-capability-definition';
+import {
+  parseDefaultEffort,
+  parseSupportEfforts,
+  supportEffortsFromReasoningOptions,
+} from './model-effort';
 import type { ProviderType } from './provider-descriptor';
 import { normalizeProviderId } from './provider-id';
 import { sourceModelSchema, type GeneratedRegistry, type SourceModel } from './schema';
@@ -69,6 +74,10 @@ const sanitizeMetadataEntry = (value: unknown): ModelsMetadataEntry | undefined 
       }
     : undefined;
   const modalities = sanitizeMetadataModalities(entry['modalities']);
+  const supportEfforts =
+    parseSupportEfforts(entry['support_efforts']) ??
+    supportEffortsFromReasoningOptions(entry['reasoning_options']);
+  const defaultEffort = parseDefaultEffort(entry['default_effort']);
 
   return {
     id,
@@ -82,6 +91,8 @@ const sanitizeMetadataEntry = (value: unknown): ModelsMetadataEntry | undefined 
     ...(typeof entry['tool_call'] === 'boolean' ? { tool_call: entry['tool_call'] } : {}),
     ...(typeof entry['reasoning'] === 'boolean' ? { reasoning: entry['reasoning'] } : {}),
     ...(typeof entry['interleaved'] === 'boolean' ? { interleaved: entry['interleaved'] } : {}),
+    ...(supportEfforts ? { support_efforts: supportEfforts } : {}),
+    ...(defaultEffort ? { default_effort: defaultEffort } : {}),
     ...(modalities ? { modalities } : {}),
   };
 };

@@ -153,7 +153,7 @@ Provider config supports:
 - model sources: `openai_models`, `anthropic_models`, `local_file`, `remote_url`
 - include/exclude filters for model IDs
 - model metadata enrichment from `https://models.dev/models.json` or a custom source
-- per-model overrides for name, family, limits, tool calling, reasoning, interleaved support, and modalities
+- per-model overrides for name, family, limits, tool calling, reasoning, interleaved support, thinking effort levels/defaults, and modalities
 - update modes: `merge` or `overwrite`
 
 The generated JSON schema is stored in [`schemas/config.schema.json`](./schemas/config.schema.json).

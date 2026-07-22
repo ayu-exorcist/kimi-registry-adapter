@@ -63,6 +63,8 @@ describe('transformOpenAiModelsToRegistry', () => {
             family: 'gpt',
             reasoning: true,
             tool_call: true,
+            support_efforts: ['low', 'medium', 'high'],
+            default_effort: 'medium',
             limit: {
               context: 400000,
               output: 16384,
@@ -88,10 +90,64 @@ describe('transformOpenAiModelsToRegistry', () => {
       },
       tool_call: true,
       reasoning: true,
+      support_efforts: ['low', 'medium', 'high'],
+      default_effort: 'medium',
       modalities: {
         input: ['text', 'image'],
         output: ['text'],
       },
+    });
+  });
+
+  it('extracts effort levels from reasoning options and applies explicit overrides last', () => {
+    const registry = transformOpenAiModelsToRegistry({
+      config: {
+        ...baseConfig,
+        modelsMetadata: parseModelsMetadata({
+          'model-b': {
+            id: 'model-b',
+            reasoning_options: [
+              { type: 'toggle' },
+              { type: 'effort', values: ['minimal', 'high', 'none'] },
+            ],
+            default_effort: 'high',
+          },
+        }),
+        overrides: {
+          'model-b': {
+            support_efforts: ['high', 'max'],
+            default_effort: 'max',
+          },
+        },
+      },
+      models: [
+        {
+          id: 'model-a',
+          reasoning_options: [
+            { type: 'budget_tokens', values: [1024] },
+            { type: 'effort', values: [null, 'none', ' low ', 'high', 42] },
+          ],
+        },
+        { id: 'model-b' },
+        {
+          id: 'model-c',
+          support_efforts: ['low'],
+          default_effort: 'max',
+        },
+      ],
+    });
+
+    const provider = expectRecordValue(registry, 'provider');
+    expect(expectRecordValue(provider.models, 'model-a')).toMatchObject({
+      support_efforts: ['low', 'high'],
+    });
+    expect(expectRecordValue(provider.models, 'model-b')).toMatchObject({
+      support_efforts: ['high', 'max'],
+      default_effort: 'max',
+    });
+    expect(expectRecordValue(provider.models, 'model-c')).toMatchObject({
+      support_efforts: ['low'],
+      default_effort: 'max',
     });
   });
 

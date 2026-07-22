@@ -170,6 +170,8 @@ Per-model overrides are keyed by source model ID and can set:
 - `tool_call`
 - `reasoning`
 - `interleaved`
+- `support_efforts`
+- `default_effort`
 - `modalities.input`
 - `modalities.output`
 
@@ -179,7 +181,7 @@ Overrides are applied after source-field and metadata inference. `override.id` c
 
 `modelsMetadataPath` may point to an HTTP(S) URL or a local JSON file. The default `models.dev` metadata is cached for five minutes in memory and under `~/.kimi-registry-adapter/cache/` so separate CLI runs can reuse it; stale entries use ETag or Last-Modified conditional requests when the server provides those headers. Custom remote metadata stays in memory and is never persisted. Local metadata is cached by file mtime and size.
 
-Metadata entries can fill model name, family, limits, tool calling, reasoning, interleaved support, and modalities. Matching happens first by exact model ID, then by normalized ID. Normalization trims, lowercases, and removes one vendor prefix such as `vendor/model`. If more than one metadata key normalizes to the same ID, that normalized match is considered ambiguous and is not used.
+Metadata entries can fill model name, family, limits, tool calling, reasoning, interleaved support, thinking effort fields, and modalities. `support_efforts` and `default_effort` are copied directly when valid. KRA also extracts selectable effort names from models.dev-style `reasoning_options` entries with `type: "effort"`; `none`, null, empty, and non-string values are not exposed as selectable efforts, and KRA does not guess a default effort. Matching happens first by exact model ID, then by normalized ID. Normalization trims, lowercases, and removes one vendor prefix such as `vendor/model`. If more than one metadata key normalizes to the same ID, that normalized match is considered ambiguous and is not used.
 
 When remote metadata fetch fails, KRA logs a warning and continues without remote metadata, or with a cached remote value when one exists. Local metadata read or parse errors are not swallowed.
 
@@ -200,14 +202,16 @@ A generated provider registry has this shape:
         "id": "kimi-k2",
         "name": "kimi-k2",
         "limit": { "context": 131072 },
-        "tool_call": false
+        "tool_call": false,
+        "support_efforts": ["low", "medium", "high"],
+        "default_effort": "medium"
       }
     }
   }
 }
 ```
 
-Generated providers require `id`, `name`, `api`, `type`, and `models`. Generated models require `id` and `name`; capability fields are optional. Editable registry validation allows extra provider and model fields so users can add namespaced or Kimi-specific metadata to `api.json`.
+Generated providers require `id`, `name`, `api`, `type`, and `models`. Generated models require `id` and `name`; capability fields are optional. `support_efforts` is a non-empty array of non-empty strings and `default_effort` is a non-empty string; KRA preserves provider-defined effort names and does not require the default to appear in the list. Editable registry validation allows extra provider and model fields so users can add namespaced or Kimi-specific metadata to `api.json`.
 
 ## Code Consistency Check
 

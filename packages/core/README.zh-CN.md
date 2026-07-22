@@ -55,7 +55,7 @@ Provider 配置支持：
 - `apiKeyEnv` — provider API key 的环境变量名。
 - `updateMode` — `merge` 或 `overwrite`。
 - `include` / `exclude` — 模型 ID 过滤规则。
-- `overrides` — 针对单个模型覆盖身份信息、限制、能力和模态。
+- `overrides` — 针对单个模型覆盖身份信息、限制、能力、thinking effort 档位/默认值和模态。
 
 ## 公开 operations
 

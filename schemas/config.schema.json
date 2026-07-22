@@ -210,6 +210,18 @@
                 "interleaved": {
                   "type": "boolean"
                 },
+                "support_efforts": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "default_effort": {
+                  "type": "string",
+                  "minLength": 1
+                },
                 "modalities": {
                   "type": "object",
                   "properties": {

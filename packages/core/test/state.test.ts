@@ -465,6 +465,45 @@ describe('mergeEditableRegistry', () => {
     expect(merged.conflicts).toEqual([]);
   });
 
+  it('preserves manual effort edits and records an effort-field conflict', () => {
+    const registryWithEfforts = (supportEfforts: string[]) => ({
+      provider: {
+        id: 'provider',
+        name: 'Provider',
+        api: 'https://gateway.example.com/v1',
+        type: 'openai' as const,
+        models: {
+          'gpt-5.4': {
+            id: 'gpt-5.4',
+            name: 'GPT 5.4',
+            support_efforts: supportEfforts,
+          },
+        },
+      },
+    });
+
+    const merged = mergeEditableRegistry({
+      oldGenerated: registryWithEfforts(['low', 'high']),
+      currentEditable: registryWithEfforts(['low', 'high', 'max']),
+      newGenerated: registryWithEfforts(['minimal', 'low', 'high']),
+    });
+
+    const provider = expectRecordValue(merged.editable, 'provider');
+    const updatedModel = expectRecordValue(provider.models, 'gpt-5.4');
+    expect(updatedModel.support_efforts).toEqual(['low', 'high', 'max']);
+    expect(merged.conflicts).toEqual([
+      {
+        providerId: 'provider',
+        modelId: 'gpt-5.4',
+        field: 'support_efforts',
+        before: { kind: 'value', value: ['low', 'high'] },
+        current: { kind: 'value', value: ['low', 'high', 'max'] },
+        incoming: { kind: 'value', value: ['minimal', 'low', 'high'] },
+        after: { kind: 'value', value: ['low', 'high', 'max'] },
+      },
+    ]);
+  });
+
   it('records conflicts at the nested field path', () => {
     const oldGenerated = {
       provider: {

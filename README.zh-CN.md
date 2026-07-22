@@ -153,7 +153,7 @@ Provider 配置支持：
 - 模型来源：`openai_models`、`anthropic_models`、`local_file`、`remote_url`
 - 模型 ID 的 include/exclude 过滤
 - 从 `https://models.dev/models.json` 或自定义来源进行模型元数据增强
-- 针对单个模型覆盖名称、家族、限制、工具调用、reasoning、interleaved 支持和模态
+- 针对单个模型覆盖名称、家族、限制、工具调用、reasoning、interleaved 支持、thinking effort 档位/默认值和模态
 - 更新模式：`merge` 或 `overwrite`
 
 生成的 JSON Schema 位于 [`schemas/config.schema.json`](./schemas/config.schema.json)。

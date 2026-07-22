@@ -5,6 +5,11 @@ import {
   reasoningSourceFields,
   toolCallSourceFields,
 } from './model-capability-definition';
+import {
+  parseDefaultEffort,
+  parseSupportEfforts,
+  supportEffortsFromReasoningOptions,
+} from './model-effort';
 import { editableModelSchema, type EditableModel, type SourceModel } from './schema';
 import type { Modality } from './schema-primitives';
 import type { UnknownRecord } from './type-guards';
@@ -27,6 +32,8 @@ export type ModelsMetadataEntry = {
   tool_call?: boolean;
   reasoning?: boolean;
   interleaved?: boolean;
+  support_efforts?: string[];
+  default_effort?: string;
   modalities?: ModelModalities;
 };
 
@@ -161,6 +168,11 @@ export const inferEditableModel = ({
   const toolCall = pickToolCall(model, undefined) ?? metadataModel?.tool_call ?? fallbackToolCall;
   const reasoning = pickReasoning(model) ?? metadataModel?.reasoning;
   const interleaved = pickInterleaved(model) ?? metadataModel?.interleaved;
+  const supportEfforts =
+    parseSupportEfforts(model.support_efforts) ??
+    supportEffortsFromReasoningOptions(model.reasoning_options) ??
+    metadataModel?.support_efforts;
+  const defaultEffort = parseDefaultEffort(model.default_effort) ?? metadataModel?.default_effort;
   const inferredModelInput: UnknownRecord = {
     id: model.id,
     name: override?.name ?? metadataModel?.name ?? model.name ?? model.id,
@@ -183,6 +195,12 @@ export const inferEditableModel = ({
   }
   if (interleaved !== undefined) {
     inferredModelInput['interleaved'] = interleaved;
+  }
+  if (supportEfforts !== undefined) {
+    inferredModelInput['support_efforts'] = supportEfforts;
+  }
+  if (defaultEffort !== undefined) {
+    inferredModelInput['default_effort'] = defaultEffort;
   }
   if (modalities) {
     inferredModelInput['modalities'] = modalities;
@@ -217,6 +235,12 @@ export const inferEditableModel = ({
   }
   if (override.interleaved !== undefined) {
     overriddenModelInput['interleaved'] = override.interleaved;
+  }
+  if (override.support_efforts !== undefined) {
+    overriddenModelInput['support_efforts'] = override.support_efforts;
+  }
+  if (override.default_effort !== undefined) {
+    overriddenModelInput['default_effort'] = override.default_effort;
   }
   if (override.modalities) {
     overriddenModelInput['modalities'] = {
